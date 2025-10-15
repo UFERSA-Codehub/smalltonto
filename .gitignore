@@ -1,0 +1,6 @@
+#Python stuff
+.venv
+*cache*
+
+#Node stuff
+node_modules
