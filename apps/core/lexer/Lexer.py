@@ -36,9 +36,10 @@ combinação de letras, ou tendo sublinhado como subcadeia própria, sem número
 Exemplos:
 Person, Child, Church, University, Second_Baptist_Church. 
 '''
-# def t_CLASS_NAME(t):
-#     r'[A-Z][a-zA-Z_]*'
-#     return t
+def t_CLASS_NAME(t):
+    r'[A-Z][a-zA-Z_]*'
+    t.type = reserved.get(t.value, 'RELATION_NAME')
+    return t
 
 '''
 Convenção para nomes de relações: começando com letra minúscula, seguida por qualquer
@@ -46,10 +47,10 @@ combinação de letras, ou tendo sublinhado como subcadeia própria, sem número
 Exemplos: 
 has, hasParent, has_parent, isPartOf, is_part_of.
 '''
-# def t_RELATION_NAME(t):
-#     r'[a-z][a-zA-Z_]*'
-#     t.type = reserved.get(t.value, 'RELATION_NAME')  # Check for reserved words
-#     return t
+def t_RELATION_NAME(t):
+    r'[a-z][a-zA-Z_]*'
+    t.type = reserved.get(t.value, 'RELATION_NAME')  # Check for reserved words
+    return t
 
 '''
 Convenção para nomes de instâncias: iniciando com qualquer letra, podendo ter o 
@@ -57,37 +58,36 @@ sublinhado como subcadeia própria e terminando com algum número inteiro.
 Exemplos: 
 Planeta1, Planeta2,pizza03, pizza123.
 '''
-# def t_INSTANCE_NAME(t):
-#     r'[a-zA-Z_]+[0-9]+'
-#     return t
+def t_INSTANCE_NAME(t):
+    r'[a-zA-Z_]+[0-9]+'
+    return t
 
 def t_IDENTIFIER(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
-    t.type = reserved.get(t.value, 'IDENTIFIER')  # Check for reserved words
+    t.type = reserved.get(t.value, 'IDENTIFIER')
     # if t.type starts with CLASS, count +1 to t.lexer.class_count
     
-    #TODO: pensar se boto no global ou não
-    if t.type.startswith('CLASS_'):
-        if not hasattr(t.lexer, 'class_count'):
-            t.lexer.class_count = 0
-        t.lexer.class_count += 1
+    # #TODO: pensar se boto no global ou não
+    # if t.type.startswith('CLASS_'):
+    #     if not hasattr(t.lexer, 'class_count'):
+    #         t.lexer.class_count = 0
+    #     t.lexer.class_count += 1
 
-    elif t.type.startswith('RELATION_'):
-        if not hasattr(t.lexer, 'relation_count'):
-            t.lexer.relation_count = 0
-        t.lexer.relation_count += 1
+    # elif t.type.startswith('RELATION_'):
+    #     if not hasattr(t.lexer, 'relation_count'):
+    #         t.lexer.relation_count = 0
+    #     t.lexer.relation_count += 1
 
-    elif t.type.startswith('KEYWORD_'):
-        if not hasattr(t.lexer, 'keyword_count'):
-            t.lexer.keyword_count = 0
-        t.lexer.keyword_count += 1
+    # elif t.type.startswith('KEYWORD_'):
+    #     if not hasattr(t.lexer, 'keyword_count'):
+    #         t.lexer.keyword_count = 0
+    #     t.lexer.keyword_count += 1
 
-    elif t.type.startswith('INSTANCE_'):
-        if not hasattr(t.lexer, 'instance_count'):
-            t.lexer.instance_count = 0
-        t.lexer.instance_count += 1
+    # elif t.type.startswith('INSTANCE_'):
+    #     if not hasattr(t.lexer, 'instance_count'):
+    #         t.lexer.instance_count = 0
+    #     t.lexer.instance_count += 1
     
-
     return t
 
 def t_COMMENT(t):
@@ -121,5 +121,3 @@ lexer = build_lexer()
 #         print(tok)
 
 #     print(f"Total classes found: {getattr(lexer, 'class_count', 0)}")
-    
-
