@@ -9,7 +9,14 @@ language_keywords = {
     'package': 'KEYWORD_PACKAGE',
     'import': 'KEYWORD_IMPORT',
     'functional-complexes': 'KEYWORD_FUNCTIONAL_COMPLEXES',
-    # TODO: Adicionar o restante das palavras reservadas!   
+    # TODO: Adicionar o restante das palavras reservadas! 
+    # "specializes" // 
+    # "," //  
+    # "-" (não reconhece no functional-complexes) //
+    # "of" //
+    # "relator" //
+    # "relators" //
+    # "--" //
 }
 
 # OntoUML - Estereótipos de classe
@@ -112,3 +119,56 @@ tokens = [
     'INSTANCE_NAME',
 ] + list(reserved.values())
 
+def get_keyword_categories():
+    """
+    Returns a dictionary of all keyword categories for external use
+    (e.g., syntax highlighting).
+    
+    Returns:
+        dict: Dictionary with keys 'language', 'class_stereotypes', 
+              'relation_stereotypes', 'data_types', 'meta_attributes'
+    """
+    return {
+        'language': language_keywords,
+        'class_stereotypes': class_stereotypes,
+        'relation_stereotypes': relation_stereotypes,
+        'data_types': data_types,
+        'meta_attributes': meta_attributes,
+    }
+
+
+def get_token_category(token_type):
+    """
+    Returns the category of a given token type.
+    Useful for semantic analysis and syntax highlighting.
+    
+    Args:
+        token_type (str): The token type (e.g., 'KEYWORD_PACKAGE', 'CLASS_KIND')
+    
+    Returns:
+        str: The category name (e.g., 'LANGUAGE_KEYWORD', 'CLASS_STEREOTYPE')
+    """
+    if token_type in language_keywords.values():
+        return "LANGUAGE_KEYWORD"
+    elif token_type in class_stereotypes.values():
+        return "CLASS_STEREOTYPE"
+    elif token_type in relation_stereotypes.values():
+        return "RELATION_STEREOTYPE"
+    elif token_type in data_types.values():
+        return "DATA_TYPE"
+    elif token_type in meta_attributes.values():
+        return "META_ATTRIBUTE"
+    elif token_type in ["CLASS_NAME", "RELATION_NAME", "INSTANCE_NAME"]:
+        return "NAMING_CONVENTION"
+    elif token_type == "IDENTIFIER":
+        return "IDENTIFIER"
+    elif token_type in ["STRING", "NUMBER"]:
+        return "LITERAL"
+    elif token_type in ["LBRACE", "RBRACE", "LPAREN", "RPAREN", "LBRACKET", "RBRACKET"]:
+        return "DELIMITER"
+    elif token_type in ["COLON", "ASTERISK", "ANNOTATION", "CARDINALITY"]:
+        return "PUNCTUATION"
+    elif token_type in ["COMPOSITIONL", "COMPOSITIONR", "AGGREGATIONL", "AGGREGATIONR"]:
+        return "RELATION_OPERATOR"
+    else:
+        return "OTHER"
