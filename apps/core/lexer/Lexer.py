@@ -2,6 +2,10 @@ import ply.lex as lex
 
 from TokenType import tokens, reserved
 
+# Globals
+lexer_errors = []
+
+
 # Token definitions
 t_LBRACE       = r'\{'
 t_RBRACE       = r'\}'
@@ -99,13 +103,21 @@ def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
 
-def build_lexer():
-    return lex.lex()
-
 # Error handling
 def t_error(t):
-    print(f"Illegal character '{t.value[0]}' at line {t.lineno}")
+    
+    error_msg = f"Illegal character '{t.value[0]}' at line {t.lineno}"
+    lexer_errors.append(error_msg)
+    print(error_msg)
     t.lexer.skip(1)
+
+def get_errors():
+    return lexer_errors
+
+def build_lexer():
+    global lexer_errors
+    lexer_errors = []
+    return lex.lex()
 
 # Build lexer
 lexer = build_lexer()
