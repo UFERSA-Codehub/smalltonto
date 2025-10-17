@@ -169,9 +169,9 @@ def get_token_category(token_type):
     elif token_type in meta_attributes.values():
         return "META_ATTRIBUTE"
     elif token_type in ["CLASS_NAME", "RELATION_NAME", "INSTANCE_NAME"]:
-        return "NAMING_CONVENTION"
+        return "ID"
     elif token_type == "IDENTIFIER":
-        return "IDENTIFIER"
+        return "ID"
     elif token_type in ["STRING", "NUMBER"]:
         return "LITERAL"
     elif token_type in ["LBRACE", "RBRACE", "LPAREN", "RPAREN", "LBRACKET", "RBRACKET"]:
