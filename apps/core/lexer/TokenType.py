@@ -9,14 +9,17 @@ language_keywords = {
     'package': 'KEYWORD_PACKAGE',
     'import': 'KEYWORD_IMPORT',
     'functional-complexes': 'KEYWORD_FUNCTIONAL_COMPLEXES',
+    'specializes': 'KEYWORD_SPECIALIZES',
+    'relator': 'KEYWORD_RELATOR',
+    'relators': 'KEYWORD_RELATORS',
     # TODO: Adicionar o restante das palavras reservadas! 
-    # "specializes" // 
-    # "," //  
+    # "specializes" // ✅
+    # "," //  ✅
     # "-" (não reconhece no functional-complexes) //
-    # "of" //
-    # "relator" //
-    # "relators" //
-    # "--" //
+    # "of" // ✅
+    # "relator" // ✅
+    # "relators" // ✅
+    # "--" // ✅
 }
 
 # OntoUML - Estereótipos de classe
@@ -72,12 +75,12 @@ relation_stereotypes = {
 }
 
 data_types = {
-    'number': 'TYPE_NUMBER',
-    'string': 'TYPE_STRING',
-    'boolean': 'TYPE_BOOLEAN',
-    'date': 'TYPE_DATE',
-    'time': 'TYPE_TIME',
-    'datetime': 'TYPE_DATETIME',
+    'Number': 'TYPE_NUMBER',
+    'String': 'TYPE_STRING',
+    'Boolean': 'TYPE_BOOLEAN',
+    'Date': 'TYPE_DATE',
+    'Time': 'TYPE_TIME',
+    'Datetime': 'TYPE_DATETIME',
 }
 
 meta_attributes ={
@@ -107,13 +110,20 @@ tokens = [
     'LBRACKET',     # "["
     'RBRACKET',     # "]"
     'CARDINALITY',  # ".."
-    'COMPOSITIONL', # "<>--"
-    'COMPOSITIONR', # "--<>"
-    'AGGREGATIONL', # "<o>--"
-    'AGGREGATIONR', # "--<o>"
+    'AGGREGATIONL', # "<>--"
+    'AGGREGATIONR', # "--<>"
+    'COMPOSITIONL', # "<o>--"
+    'COMPOSITIONR', # "--<o>"
     'ASTERISK',     # "*"
     'ANNOTATION',   # "@"
     'COLON',        # ":"
+    'COMMA',        # ","
+    'DASH',         # "-" usado em functional-complexes
+    'ASSOCIATION',   # "--" usado em associações com direção irrelevante
+    'ASSOCIATIONl', # "<--" usado em associações direcionadas reversas
+    'ASSOCIATIONR', # "-->" usado em associações direcionadas
+    'ASSOCIATIONLR',# "<-->" usado em associações bidirecionais
+
     'CLASS_NAME',
     'RELATION_NAME',
     'INSTANCE_NAME',
@@ -140,7 +150,7 @@ def get_keyword_categories():
 def get_token_category(token_type):
     """
     Returns the category of a given token type.
-    Useful for semantic analysis and syntax highlighting.
+    For semantic analysis and syntax highlighting.
     
     Args:
         token_type (str): The token type (e.g., 'KEYWORD_PACKAGE', 'CLASS_KIND')
