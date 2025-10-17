@@ -1,13 +1,8 @@
-# --- MISE ACTIVATION START ---
-
-# 1. Default mise installer path (Linux, WSL)
-export PATH="$HOME/.local/bin:/home/linuxbrew/.linuxbrew/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-
-if command -v mise &> /dev/null
-then
-    eval "$(mise hook-env)"
+# === Detect node ===
+if [ -f "node_modules/.bin/commitlint" ]; then
+    npx --no-install commitlint --edit "$1"
+else
+    echo "Error: node packages are not installed!"
+    exit 1
 fi
-# --- MISE ACTIVATION END ---
-
-"$(dirname -- "$0")/../node_modules/.bin/commitlint" --edit $1
 
