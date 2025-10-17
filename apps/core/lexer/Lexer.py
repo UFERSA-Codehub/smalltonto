@@ -112,13 +112,10 @@ lexer = build_lexer()
 
 if __name__ == "__main__":
     # Test the lexer
-    data = '''
-    kind Person {
-        name: string
-        age: number
-    }
-    // This is a comment
-    '''
+    
+    test_file = open("examples/professor/CarExample/src/carRental.tonto")
+
+    data = test_file.read()
     lexer.input(data)
     for tok in lexer:
         print(tok)
