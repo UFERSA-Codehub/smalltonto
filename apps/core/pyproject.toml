@@ -12,4 +12,4 @@ select = ["E", "I"]
 [tool.ruff.format]
 line-ending = "lf"
 quote-style = "double"
-indent-style = "tab"
+indent-style = "space"
