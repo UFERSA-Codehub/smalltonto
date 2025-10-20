@@ -1,6 +1,5 @@
 import ply.lex as lex
-
-from TokenType import tokens, reserved
+from TokenType import reserved, tokens
 
 # Globals
 lexer_errors = []
@@ -108,7 +107,6 @@ def t_error(t):
     
     error_msg = f"Illegal character '{t.value[0]}' at line {t.lineno}"
     lexer_errors.append(error_msg)
-    print(error_msg)
     t.lexer.skip(1)
 
 def get_errors():
