@@ -9,6 +9,14 @@ No presente repositório estão as implementações avaliativas para a disciplin
 ### Linguagem TONTO - *Textual Ontology Language*
 A TONTO (Textual Ontology Language) é uma linguagem textual para especificação de ontologias computacionais — grafos de conhecimento usados na Web Semântica (Web 3.0). Criada para facilitar o desenvolvimento de ontologias por especialistas de diversas áreas, a TONTO permite gerar automaticamente modelos em formatos como OntoUML, JSON e gUFO (OWL). Possui suporte no VSCode, com ferramentas para modularização, orquestração de dependências e conversão entre formatos.
 
+## Sumário
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Unidade 1: Analisador Léxico](#unidade-1-analisador-léxico)
+  - [Problema](#problema)
+  - [Implementação](#implementação)
+  - [Como usar/executar o trabalho da unidade 1](#como-usarexecutar-o-trabalho-da-unidade-1)	
+- [Referências](#referências)
+
 ---
 ## Unidade 1: Analisador Léxico
 ### Problema
@@ -50,7 +58,7 @@ Também, a pasta `apps/core/examples` contém códigos `.tonto` que foram usados
   - A pasta `examples/professor` contém códigos de exemplo fornecidos pelo professor da disciplina destinados a auxiliar na testabilidade do analisador. 
   - O arquivo `example.tonto` é um código menor feito para testar mudanças pontuais na análise léxica.
 ---
-### Como usar/executar o trabalho da unidade 1:
+### Como usar/executar o trabalho da unidade 1
 Para executar a análise léxica, siga os seguintes passos:
 1. Clone o repositório para seu computador:
 ```bash
@@ -97,6 +105,7 @@ and is not trusted on your system. Only run scripts from trusted publishers.
 (default is "D")
 ```
 4. Selecionando `[A] Always Run`, o certificado será adicionado para os Autores Confiáveis da sua conta de usuário, e será confiado nesse contexto de usuário a partir de agora.
+
 ## Referências
 1. W3C. (2025). Resource Description Framework – Concepts and Abstract Data Model. Disponível online em: https://www.w3.org/TR/rdf12-concepts/ 
 2. W3C. (2012). Web Ontology Language Conformance (Second Edition). Disponível online em: https://www.w3.org/TR/owl2-conformance/ 
