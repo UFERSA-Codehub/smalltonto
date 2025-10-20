@@ -3,12 +3,6 @@
 ### Universidade: UFERSA - Universidade Federal Rural do Semiárido
 ### Ano: 2025
 
-## Sobre o Projeto 
-No presente repositório estão as implementações avaliativas para a disciplina de Compiladores, separadas por unidade. Cada unidade define a implementação de uma parte de um Compilador de Linguagem de Ontologia Textual (*Textual Ontology Language*, TONTO), limitando-se porém aos analisadores léxico, sintático e semântico, de modo a se adequar ao escopo dessa disciplina.
-
-### Linguagem TONTO - *Textual Ontology Language*
-A TONTO (Textual Ontology Language) é uma linguagem textual para especificação de ontologias computacionais — grafos de conhecimento usados na Web Semântica (Web 3.0). Criada para facilitar o desenvolvimento de ontologias por especialistas de diversas áreas, a TONTO permite gerar automaticamente modelos em formatos como OntoUML, JSON e gUFO (OWL). Possui suporte no VSCode, com ferramentas para modularização, orquestração de dependências e conversão entre formatos.
-
 ## Sumário
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Unidade 1: Analisador Léxico](#unidade-1-analisador-léxico)
@@ -17,7 +11,14 @@ A TONTO (Textual Ontology Language) é uma linguagem textual para especificaçã
   - [Como usar/executar o trabalho da unidade 1](#como-usarexecutar-o-trabalho-da-unidade-1)	
 - [Referências](#referências)
 
----
+## Sobre o Projeto 
+No presente repositório estão as implementações avaliativas para a disciplina de Compiladores, separadas por unidade. Cada unidade define a implementação de uma parte de um Compilador de Linguagem de Ontologia Textual (*Textual Ontology Language*, TONTO), limitando-se porém aos analisadores léxico, sintático e semântico, de modo a se adequar ao escopo dessa disciplina.
+
+### Linguagem TONTO - *Textual Ontology Language*
+A TONTO (Textual Ontology Language) é uma linguagem textual para especificação de ontologias computacionais — grafos de conhecimento usados na Web Semântica (Web 3.0). Criada para facilitar o desenvolvimento de ontologias por especialistas de diversas áreas, a TONTO permite gerar automaticamente modelos em formatos como OntoUML, JSON e gUFO (OWL). Possui suporte no VSCode, com ferramentas para modularização, orquestração de dependências e conversão entre formatos.
+
+<p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
+
 ## Unidade 1: Analisador Léxico
 ### Problema
 Projetar um analisador léxico para a linguagem TONTO para reconhecer os elementos da linguagem. Considerando que o autor da ferramenta já disponibiliza um analisador para tal, alguns requisitos mais específicos serão dados neste trabalho de implementação e pesquisa, de forma a permitir que um ontologista crie um documento TONTO com um formato bem definido para cada um dos elementos da linguagem. 
@@ -57,7 +58,11 @@ Os arquivos necessários ao analisador léxico estão no caminho `apps/core/lexe
 Também, a pasta `apps/core/examples` contém códigos `.tonto` que foram usados para validar a eficácia do algoritmo diante de diferentes entradas. 
   - A pasta `examples/professor` contém códigos de exemplo fornecidos pelo professor da disciplina destinados a auxiliar na testabilidade do analisador. 
   - O arquivo `example.tonto` é um código menor feito para testar mudanças pontuais na análise léxica.
+
+<p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
+
 ---
+
 ### Como usar/executar o trabalho da unidade 1
 Para executar a análise léxica, siga os seguintes passos:
 1. Clone o repositório para seu computador:
@@ -105,6 +110,8 @@ and is not trusted on your system. Only run scripts from trusted publishers.
 (default is "D")
 ```
 4. Selecionando `[A] Always Run`, o certificado será adicionado para os Autores Confiáveis da sua conta de usuário, e será confiado nesse contexto de usuário a partir de agora.
+
+<p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
 
 ## Referências
 1. W3C. (2025). Resource Description Framework – Concepts and Abstract Data Model. Disponível online em: https://www.w3.org/TR/rdf12-concepts/ 
