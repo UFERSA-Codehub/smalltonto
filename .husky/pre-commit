@@ -11,7 +11,8 @@ else
 fi
 
 # === Run tools inside venv ===
-ruff check apps/core --fix
 ruff format apps/core
+ruff check apps/core --fix
 # python scripts/fix_docstrings.py
 # pytest tests
+git add .

@@ -7,7 +7,7 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "I"]
+select = ["E", "F", "W", "I"] #erro, logica, warning, import
 
 [tool.ruff.format]
 line-ending = "lf"

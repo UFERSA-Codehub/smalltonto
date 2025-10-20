@@ -1,5 +1,5 @@
 import ply.lex as lex
-from TokenType import reserved, tokens
+from TokenType import reserved, tokens  # noqa: F401
 
 # Globals
 lexer_errors = []
@@ -38,9 +38,9 @@ def t_NUMBER(t):
 
 """
 Convenção para nomes de classes: iniciando com letra maiúscula, seguida por qualquer
-combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. 
+combinação de letras, ou tendo sublinhado como subcadeia própria, sem números.
 Exemplos:
-Person, Child, Church, University, Second_Baptist_Church. 
+Person, Child, Church, University, Second_Baptist_Church.
 """
 
 
@@ -52,8 +52,8 @@ def t_CLASS_NAME(t):
 
 """
 Convenção para nomes de relações: começando com letra minúscula, seguida por qualquer
-combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. 
-Exemplos: 
+combinação de letras, ou tendo sublinhado como subcadeia própria, sem números.
+Exemplos:
 has, hasParent, has_parent, isPartOf, is_part_of.
 """
 
@@ -65,9 +65,9 @@ def t_RELATION_NAME(t):
 
 
 """
-Convenção para nomes de instâncias: iniciando com qualquer letra, podendo ter o 
-sublinhado como subcadeia própria e terminando com algum número inteiro. 
-Exemplos: 
+Convenção para nomes de instâncias: iniciando com qualquer letra, podendo ter o
+sublinhado como subcadeia própria e terminando com algum número inteiro.
+Exemplos:
 Planeta1, Planeta2,pizza03, pizza123.
 """
 
