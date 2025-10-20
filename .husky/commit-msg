@@ -1,8 +1,0 @@
-# === Detect node ===
-if [ -f "node_modules/.bin/commitlint" ]; then
-    npx --no-install commitlint --edit "$1"
-else
-    echo "Error: node packages are not installed!"
-    exit 1
-fi
-

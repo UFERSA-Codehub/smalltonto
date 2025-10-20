@@ -3,11 +3,12 @@ package University {
         $name: String
         %age: Number
     }
-    
     kind Student specializes Person
     
     relator Enrollment {
         student: Student [1..*]
         course: Course [1..*]
     }
+
+    PhoneDataType phoneNumber
 }
