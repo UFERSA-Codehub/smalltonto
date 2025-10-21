@@ -3,6 +3,12 @@
 ### Universidade: UFERSA - Universidade Federal Rural do Semiárido
 ### Ano: 2025
 
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://ufersa-codehub.github.io/smalltonto/)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+
+
 ## Sumário
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Unidade 1: Analisador Léxico](#unidade-1-analisador-léxico)
@@ -10,6 +16,21 @@
   - [Implementação](#implementação)
   - [Como usar/executar o trabalho da unidade 1](#como-usarexecutar-o-trabalho-da-unidade-1)	
 - [Referências](#referências)
+
+### Exemplo de Saída do Analisador Léxico
+
+O analisador léxico desenvolvido processa arquivos `.tonto` e gera relatórios
+detalhados com análise de tokens, detecção de erros e estatísticas:
+<div align="center">
+    <img src="apps/docs/images/{C4E68833-7CCB-4692-A311-EC5D0A87991D}.png" alt="Exemplo1"  height="500" alt="Example image">
+    <p align="center"><em>
+    Exemplo da saída do analisador mostrando tokenização completa, erros léxicos
+detectados e estatísticas de distribuição por categoria.
+    </em></p>
+</div>
+
+
+
 
 ## Sobre o Projeto 
 No presente repositório estão as implementações avaliativas para a disciplina de Compiladores, separadas por unidade. Cada unidade define a implementação de uma parte de um Compilador de Linguagem de Ontologia Textual (*Textual Ontology Language*, TONTO), limitando-se porém aos analisadores léxico, sintático e semântico, de modo a se adequar ao escopo dessa disciplina.

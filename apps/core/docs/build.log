@@ -1,0 +1,107 @@
+Running Sphinx v8.2.3
+loading translations [pt-BR]... not available for built-in messages
+making output directory... done
+loading intersphinx inventory 'python' from https://docs.python.org/3/objects.inv ...
+loading intersphinx inventory 'ply' from https://ply.readthedocs.io/en/latest/objects.inv ...
+[autosummary] generating autosummary for: api.rst, examples.rst, guide.rst, index.rst
+building [mo]: targets for 0 po files that are out of date
+writing output... 
+building [html]: targets for 4 source files that are out of date
+updating environment: [new config] 4 added, 0 changed, 0 removed
+reading sources... [ 25%] api
+reading sources... [ 50%] examples
+reading sources... [ 75%] guide
+reading sources... [100%] index
+
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.RESET:1: WARNING: duplicate object description of lexer.Utils.Colors.RESET, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.RED:1: WARNING: duplicate object description of lexer.Utils.Colors.RED, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.GREEN:1: WARNING: duplicate object description of lexer.Utils.Colors.GREEN, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.YELLOW:1: WARNING: duplicate object description of lexer.Utils.Colors.YELLOW, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.BLUE:1: WARNING: duplicate object description of lexer.Utils.Colors.BLUE, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.MAGENTA:1: WARNING: duplicate object description of lexer.Utils.Colors.MAGENTA, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.CYAN:1: WARNING: duplicate object description of lexer.Utils.Colors.CYAN, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Utils.py:docstring of lexer.Utils.Colors.BOLD:1: WARNING: duplicate object description of lexer.Utils.Colors.BOLD, other instance in api, use :no-index: for one of them
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Lexer.py:docstring of lexer.Lexer.t_CLASS_NAME:1: ERROR: Unknown target name: "a-za-z". [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Lexer.py:docstring of lexer.Lexer.t_RELATION_NAME:1: ERROR: Unknown target name: "a-za-z". [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Lexer.py:docstring of lexer.Lexer.t_INSTANCE_NAME:1: ERROR: Unknown target name: "a-za-z". [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Lexer.py:docstring of lexer.Lexer.t_IDENTIFIER:1: ERROR: Unknown target name: "a-za-z". [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/lexer/Lexer.py:docstring of lexer.Lexer.t_IDENTIFIER:1: ERROR: Unknown target name: "a-za-z0-9". [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:30: WARNING: Title underline too short.
+
+Importando e usando o lexer
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:120: WARNING: Title underline too short.
+
+Palavras-chave da Linguagem
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:140: WARNING: Title underline too short.
+
+Estereótipos de Classe OntoUML
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:140: WARNING: Title underline too short.
+
+Estereótipos de Classe OntoUML
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:164: WARNING: Title underline too short.
+
+Estereótipos de Relação OntoUML
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:164: WARNING: Title underline too short.
+
+Estereótipos de Relação OntoUML
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:198: WARNING: Title underline too short.
+
+Delimitadores e Operadores
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:198: WARNING: Title underline too short.
+
+Delimitadores e Operadores
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:217: WARNING: Title underline too short.
+
+Tokens Especiais de Relação
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:217: WARNING: Title underline too short.
+
+Tokens Especiais de Relação
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:234: WARNING: Title underline too short.
+
+Identificadores
+^^^^^^^^^^^^^^ [docutils]
+/home/wslxinha/Projects/smalltonto/apps/core/docs/guide.rst:234: WARNING: Title underline too short.
+
+Identificadores
+^^^^^^^^^^^^^^ [docutils]
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+copying assets... 
+copying static files... 
+Writing evaluated template result to /home/wslxinha/Projects/smalltonto/apps/core/docs/_build/html/_static/language_data.js
+Writing evaluated template result to /home/wslxinha/Projects/smalltonto/apps/core/docs/_build/html/_static/documentation_options.js
+Writing evaluated template result to /home/wslxinha/Projects/smalltonto/apps/core/docs/_build/html/_static/basic.css
+Writing evaluated template result to /home/wslxinha/Projects/smalltonto/apps/core/docs/_build/html/_static/js/versions.js
+copying static files: done
+copying extra files... 
+copying extra files: done
+copying assets: done
+writing output... [ 25%] api
+writing output... [ 50%] examples
+writing output... [ 75%] guide
+writing output... [100%] index
+
+generating indices... genindex py-modindex done
+highlighting module code... [ 25%] lexer.Lexer
+highlighting module code... [ 50%] lexer.TokenType
+highlighting module code... [ 75%] lexer.Tokenizer
+highlighting module code... [100%] lexer.Utils
+
+writing additional pages... search done
+dumping search index in English (code: en)... done
+dumping object inventory... done
+build succeeded, 25 warnings.
+
+The HTML pages are in _build/html.
