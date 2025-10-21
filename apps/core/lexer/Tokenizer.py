@@ -45,7 +45,7 @@ def tokenize_file(filepath, truncate=False):
             display_value = display_value[:15] + "..."
 
         # Build token line
-        token_line = f"{tok.type:<25} {display_value:<20} {category:<20} {tok.lineno}"
+        token_line = f"{tok.type:<25} {display_value:<20} {category:<20} {tok.lineno:<5}{tok.lexpos}"
         token_lines.append(token_line)
 
         token_count += 1
