@@ -1,6 +1,15 @@
-#Python stuff
+# Python stuff
 .venv
+
+# pyinstaller stuff
+build
+dist
+*.spec
+
 *cache*
 
-#Node stuff
+# Node stuff
 node_modules
+
+# others
+*.exe
