@@ -136,11 +136,9 @@ def build_and_print_summary(
         content_lines.append("")  # spacing
         content_lines.append(format_section_title("TOKENS", emoji=""))
 
-        # column headers
-        header_line = f"  {'TOKEN TYPE':<25} {'VALUE':<20} {'CATEGORY':<20} {'LINE':<4} {'COLUMN'}"
+        header_line = f"  {'TOKEN TYPE':<25} {'VALUE':<20} {'CATEGORY':<20} {'LINE':<5} {'COLUMN'}"
         content_lines.append(f"{Colors.BOLD}{header_line}{Colors.RESET}")
-
-        separator_line = f"  {'-' * 25} {'-' * 20} {'-' * 20} {'-' * 4} {'-' * 6}"
+        separator_line = f"  {'-' * 25} {'-' * 20} {'-' * 20} {'-' * 4} {'-' * 7}"
         content_lines.append(separator_line)
 
         lines_to_show = token_lines
@@ -163,7 +161,6 @@ def build_and_print_summary(
         content_lines.append(format_error_section_header())
         for error in errors:
             content_lines.append(format_error_message(error))
-
 
     # === DISTRIBUTION ===
     if category_counts:
