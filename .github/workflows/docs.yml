@@ -47,11 +47,11 @@ jobs:
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
-      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/master')
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
-      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/master')
       with:
         path: apps/core/docs/_build/html
 
@@ -61,7 +61,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master')
     steps:
     - name: Deploy to GitHub Pages
       id: deployment
