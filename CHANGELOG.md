@@ -4,6 +4,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
+### Fixed
+- checagem da branch master para comparação ([`e8ab2fc`](https://github.com/ufersa-codehub/smalltonto/commit/e8ab2fc)) - 2025-11-14
+
 ### Maintenance
 - yet another one ([`2fb8864`](https://github.com/ufersa-codehub/smalltonto/commit/2fb8864)) - 2025-11-14
 - correção da sintaxe do arquivo yaml do fluxo ([`3fddeb1`](https://github.com/ufersa-codehub/smalltonto/commit/3fddeb1)) - 2025-11-14
