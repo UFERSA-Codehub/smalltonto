@@ -39,6 +39,9 @@ jobs:
       id: generate-pr-body
       run: |
         BRANCH="${{ github.ref_name }}"
+        
+        # Fetch master branch for comparison
+        git fetch origin master:master || git fetch origin main:master
 
         # Get all commits in this branch that aren't in master
         COMMITS=$(git log master..HEAD --pretty=format:"- %s (%h) - %an" | head -20)
