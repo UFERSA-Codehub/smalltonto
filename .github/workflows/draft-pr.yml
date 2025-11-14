@@ -35,6 +35,126 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
         fi
     
+    - name: Generate AI PR Summary
+      id: ai-summary
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      run: |
+        BRANCH="${{ github.ref_name }}"
+        
+        # Fetch master branch for comparison
+        git fetch origin master:master || git fetch origin main:master
+
+        # Collect context for AI
+        COMMIT_MESSAGES=$(git log master..HEAD --pretty=format:"%s" | head -20)
+        FILES_CHANGED=$(git diff --name-only master..HEAD | head -20)
+        DIFF_STAT=$(git diff master..HEAD --stat | head -30)
+        
+        # Create AI prompt
+        read -r -d '' PROMPT << 'PROMPT_EOF' || true
+        Analyze these git changes and generate a PR summary in Portuguese (pt-BR):
+
+        Branch: ${BRANCH}
+        
+        Commit messages:
+        ${COMMIT_MESSAGES}
+        
+        Files changed:
+        ${FILES_CHANGED}
+        
+        Diff stats:
+        ${DIFF_STAT}
+        
+        Generate:
+        1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)
+        2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY
+        3. Mention if it introduces new technologies, major refactoring, or significant changes
+        
+        Format your response EXACTLY as:
+        TITLE: <title here>
+        SUMMARY: <summary here>
+        TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>
+        PROMPT_EOF
+        
+        # Escape JSON strings properly
+        PROMPT=$(cat <<EOF | jq -Rs .
+        Analyze these git changes and generate a PR summary in Portuguese (pt-BR):
+
+        Branch: $BRANCH
+        
+        Commit messages:
+        $COMMIT_MESSAGES
+        
+        Files changed:
+        $FILES_CHANGED
+        
+        Diff stats:
+        $DIFF_STAT
+        
+        Generate:
+        1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)
+        2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY
+        3. Mention if it introduces new technologies, major refactoring, or significant changes
+        
+        Format your response EXACTLY as:
+        TITLE: <title here>
+        SUMMARY: <summary here>
+        TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>
+        EOF
+        )
+        
+        # Call Groq API
+        RESPONSE=$(curl -s --fail-with-body https://api.groq.com/openai/v1/chat/completions \
+          -H "Authorization: Bearer $GROQ_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "model": "llama-3.1-70b-versatile",
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese."
+              },
+              {
+                "role": "user",
+                "content": '"$PROMPT"'
+              }
+            ],
+            "temperature": 0.5,
+            "max_tokens": 400
+          }' 2>&1)
+        
+        # Check if API call succeeded
+        if [ $? -eq 0 ]; then
+          AI_CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+          
+          if [ -n "$AI_CONTENT" ]; then
+            echo "✅ AI summary generated successfully"
+            echo "$AI_CONTENT"
+            
+            # Parse AI response
+            PR_TITLE=$(echo "$AI_CONTENT" | grep "TITLE:" | sed 's/TITLE: *//' | head -1)
+            PR_SUMMARY=$(echo "$AI_CONTENT" | grep "SUMMARY:" | sed 's/SUMMARY: *//' | head -1)
+            TECH_NOTES=$(echo "$AI_CONTENT" | grep "TECH_NOTES:" | sed 's/TECH_NOTES: *//' | head -1)
+            
+            # Save to output (properly escaped for multi-line)
+            {
+              echo "ai_title=$PR_TITLE"
+              echo "ai_summary=$PR_SUMMARY"
+              echo "ai_tech_notes=$TECH_NOTES"
+              echo "ai_success=true"
+            } >> $GITHUB_OUTPUT
+            
+            echo "Title: $PR_TITLE"
+          else
+            echo "⚠️ AI response was empty, using fallback"
+            echo "ai_success=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "⚠️ Groq API call failed, using fallback"
+          echo "Response: $RESPONSE"
+          echo "ai_success=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Generate PR Body
       id: generate-pr-body
       run: |
@@ -51,40 +171,40 @@ jobs:
         FILES_CHANGED=$(git diff --name-only master..HEAD | wc -l)
         FILES_LIST=$(git diff --name-only master..HEAD | head -10 | sed 's/^/- /')
 
-        # Get commit types summary
-        FEAT_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^feat:" || echo "0")
-        FIX_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^fix:" || echo "0")
-        DOCS_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^docs:" || echo "0")
-        REFACTOR_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^refactor:" || echo "0")
-        CHORE_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^chore:" || echo "0")
-
         # Check if we have more commits/files to show
         MORE_COMMITS=""
         if [ $COMMIT_COUNT -gt 20 ]; then
-          MORE_COMMITS="_...and $(($COMMIT_COUNT - 20)) more commits_"
+          MORE_COMMITS="_...e mais $(($COMMIT_COUNT - 20)) commits_"
         fi
 
         MORE_FILES=""
         if [ $FILES_CHANGED -gt 10 ]; then
-          MORE_FILES="_...and $(($FILES_CHANGED - 10)) more files_"
+          MORE_FILES="_...e mais $(($FILES_CHANGED - 10)) arquivos_"
         fi
 
         LAST_UPDATED=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        # Use AI summary if available
+        AI_SUCCESS="${{ steps.ai-summary.outputs.ai_success }}"
+        if [ "$AI_SUCCESS" = "true" ]; then
+          AI_SUMMARY="${{ steps.ai-summary.outputs.ai_summary }}"
+          AI_TECH_NOTES="${{ steps.ai-summary.outputs.ai_tech_notes }}"
+          
+          # Construct PR body with AI summary
+          cat > pr_body.md <<EOF
+        ## 🤖 Resumo
 
-        # Construct PR body using direct variable expansion
-        cat > pr_body.md <<EOF
-        ## 🚀 Summary
+        ${AI_SUMMARY}
+
+        **Notas Técnicas:** ${AI_TECH_NOTES}
+
+        ---
+
+        ## 📊 Detalhes
 
         **Branch:** \`${BRANCH}\`  
-        **Total Commits:** ${COMMIT_COUNT}  
-        **Files Changed:** ${FILES_CHANGED}
-
-        ### 📊 Change Statistics
-        - ✨ Features: ${FEAT_COUNT}
-        - 🐛 Bug Fixes: ${FIX_COUNT}
-        - 📝 Documentation: ${DOCS_COUNT}
-        - ♻️ Refactoring: ${REFACTOR_COUNT}
-        - 🔧 Chores: ${CHORE_COUNT}
+        **Total de Commits:** ${COMMIT_COUNT}  
+        **Arquivos Alterados:** ${FILES_CHANGED}
 
         ## 📝 Commits
 
@@ -92,7 +212,7 @@ jobs:
 
         ${MORE_COMMITS}
 
-        ## 📂 Changed Files
+        ## 📂 Arquivos Alterados
 
         ${FILES_LIST}
 
@@ -101,16 +221,51 @@ jobs:
         ---
 
         ### ✅ Checklist
-        - [ ] Code reviewed
-        - [ ] Tests added/updated
-        - [ ] Documentation updated
-        - [ ] Ready for merge
+        - [ ] Código revisado
+        - [ ] Testes adicionados/atualizados
+        - [ ] Documentação atualizada
+        - [ ] Pronto para merge
 
         ---
 
-        _🤖 This PR was automatically created and is updated on each push._  
-        _Last updated: ${LAST_UPDATED}_
+        _🤖 Este PR foi criado automaticamente e é atualizado a cada push._  
+        _Última atualização: ${LAST_UPDATED}_
         EOF
+        else
+          # Fallback to basic summary without AI
+          cat > pr_body.md <<EOF
+        ## 🚀 Resumo
+
+        **Branch:** \`${BRANCH}\`  
+        **Total de Commits:** ${COMMIT_COUNT}  
+        **Arquivos Alterados:** ${FILES_CHANGED}
+
+        ## 📝 Commits
+
+        ${COMMITS}
+
+        ${MORE_COMMITS}
+
+        ## 📂 Arquivos Alterados
+
+        ${FILES_LIST}
+
+        ${MORE_FILES}
+
+        ---
+
+        ### ✅ Checklist
+        - [ ] Código revisado
+        - [ ] Testes adicionados/atualizados
+        - [ ] Documentação atualizada
+        - [ ] Pronto para merge
+
+        ---
+
+        _🤖 Este PR foi criado automaticamente e é atualizado a cada push._  
+        _Última atualização: ${LAST_UPDATED}_
+        EOF
+        fi
 
     - name: Create Draft PR
       if: steps.check-pr.outputs.pr_exists == 'false'
@@ -119,15 +274,25 @@ jobs:
       run: |
         BRANCH="${{ github.ref_name }}"
         
-        # Generate PR title from branch name
-        TITLE=$(echo "$BRANCH" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+        # Use AI-generated title if available, otherwise fallback to branch name
+        AI_SUCCESS="${{ steps.ai-summary.outputs.ai_success }}"
+        if [ "$AI_SUCCESS" = "true" ]; then
+          AI_TITLE="${{ steps.ai-summary.outputs.ai_title }}"
+          TITLE="🚧 $AI_TITLE"
+          echo "Using AI-generated title: $TITLE"
+        else
+          # Fallback: Generate PR title from branch name
+          TITLE=$(echo "$BRANCH" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+          TITLE="🚧 $TITLE"
+          echo "Using fallback title from branch name: $TITLE"
+        fi
         
         # Create draft PR with generated body
         gh pr create \
           --draft \
           --base master \
           --head "$BRANCH" \
-          --title "🚧 $TITLE" \
+          --title "$TITLE" \
           --body-file pr_body.md
     - name: Update Existing Draft PR Body
       if: steps.check-pr.outputs.pr_exists == 'true'
