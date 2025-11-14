@@ -1,0 +1,149 @@
+name: Update Changelog
+on:
+  push:
+    branches:
+      - master
+      - main
+permissions:
+  contents: write
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Generate Changelog Entry
+        run: |
+          # Get the last commit message (skip if it's the changelog update itself)
+          LAST_COMMIT=$(git log -1 --pretty=format:"%s")
+          if [[ "$LAST_COMMIT" == *"[skip ci]"* ]] || [[ "$LAST_COMMIT" == *"update CHANGELOG"* ]]; then
+            echo "Skipping changelog update for automated commit"
+            echo "SKIP_UPDATE=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          COMMIT_HASH=$(git log -1 --pretty=format:"%h")
+          COMMIT_TYPE=$(echo "$LAST_COMMIT" | sed -n 's/^\([a-z]*\):.*/\1/p')
+          COMMIT_MSG=$(echo "$LAST_COMMIT" | sed 's/^[a-z]*: //')
+          DATE=$(date +%Y-%m-%d)
+          
+          # Create CHANGELOG.md if it doesn't exist
+          if [ ! -f CHANGELOG.md ]; then
+            cat > CHANGELOG.md << 'CHANGELOG_EOF'
+          # Changelog
+          
+          All notable changes to this project will be documented in this file.
+          
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+          
+          ## [Unreleased]
+          
+          CHANGELOG_EOF
+          fi
+          
+          # Determine section based on conventional commit type
+          case "$COMMIT_TYPE" in
+            feat)
+              SECTION="### Added"
+              ;;
+            fix)
+              SECTION="### Fixed"
+              ;;
+            refactor|refac)
+              SECTION="### Changed"
+              ;;
+            docs)
+              SECTION="### Documentation"
+              ;;
+            chore|build|ci)
+              SECTION="### Maintenance"
+              ;;
+            perf)
+              SECTION="### Performance"
+              ;;
+            test)
+              SECTION="### Tests"
+              ;;
+            *)
+              SECTION="### Changed"
+              ;;
+          esac
+          
+          # Save to environment
+          echo "SECTION=$SECTION" >> $GITHUB_ENV
+          echo "COMMIT_MSG=$COMMIT_MSG" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "DATE=$DATE" >> $GITHUB_ENV
+      - name: Update CHANGELOG.md
+        if: env.SKIP_UPDATE != 'true'
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import re
+          import os
+          
+          section = os.environ.get('SECTION')
+          commit_msg = os.environ.get('COMMIT_MSG')
+          commit_hash = os.environ.get('COMMIT_HASH')
+          date = os.environ.get('DATE')
+          
+          with open('CHANGELOG.md', 'r') as f:
+              content = f.read()
+          
+          # Find the Unreleased section
+          unreleased_pattern = r'## \[Unreleased\]'
+          match = re.search(unreleased_pattern, content)
+          
+          if match:
+              new_entry = f"- {commit_msg} ([`{commit_hash}`](https://github.com/ufersa-codehub/smalltonto/commit/{commit_hash})) - {date}"
+              
+              # Find if section exists in Unreleased
+              section_pattern = re.escape(section)
+              unreleased_content = content[match.end():]
+              next_release = re.search(r'\n## \[', unreleased_content)
+              
+              if next_release:
+                  search_area = unreleased_content[:next_release.start()]
+              else:
+                  search_area = unreleased_content
+              
+              section_match = re.search(section_pattern, search_area)
+              
+              if section_match:
+                  # Add to existing section
+                  insert_pos = match.end() + section_match.end()
+                  next_newline = content.find('\n', insert_pos)
+                  content = content[:next_newline+1] + new_entry + '\n' + content[next_newline+1:]
+              else:
+                  # Create new section under Unreleased
+                  insert_pos = match.end()
+                  # Find the end of the ## [Unreleased] line
+                  next_newline = content.find('\n', insert_pos)
+                  # Add section with entry
+                  content = content[:next_newline+1] + '\n' + section + '\n' + new_entry + '\n' + content[next_newline+1:]
+          
+          with open('CHANGELOG.md', 'w') as f:
+              f.write(content)
+          PYTHON_SCRIPT
+      - name: Commit and Push Changelog
+        if: env.SKIP_UPDATE != 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Check if there are changes
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to CHANGELOG.md"
+            exit 0
+          fi
+          
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md [skip ci]"
+          git push
