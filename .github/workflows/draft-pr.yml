@@ -22,18 +22,18 @@ jobs:
     - name: Check if PR already exists
       id: check-pr
       env:
-        GH_TOKEN: ${{ github.token}}
-        run: |
-          BRANCH="${{ github.ref_name }}"
-          PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty')
-          
-          if [ -z "$PR_NUMBER" ]; then
-            echo "pr_exists=false" >> $GITHUB_OUTPUT
-            echo "pr_number=" >> $GITHUB_OUTPUT
-          else
-            echo "pr_exists=true" >> $GITHUB_OUTPUT
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          fi
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        BRANCH="${{ github.ref_name }}"
+        PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty')
+        
+        if [ -z "$PR_NUMBER" ]; then
+          echo "pr_exists=false" >> $GITHUB_OUTPUT
+          echo "pr_number=" >> $GITHUB_OUTPUT
+        else
+          echo "pr_exists=true" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        fi
     
     - name: Generate PR Body
       id: generate-pr-body
@@ -61,56 +61,56 @@ jobs:
 
         # Construct PR body
         cat > pr_body.md << 'EOF'
-          ## 🚀 Summary
-          
-          **Branch:** `$BRANCH`  
-          **Total Commits:** $COMMIT_COUNT  
-          **Files Changed:** $FILES_CHANGED
-          
-          ### 📊 Change Statistics
-          - ✨ Features: $FEAT_COUNT
-          - 🐛 Bug Fixes: $FIX_COUNT
-          - 📝 Documentation: $DOCS_COUNT
-          - ♻️ Refactoring: $REFACTOR_COUNT
-          - 🔧 Chores: $CHORE_COUNT
-          
-          ## 📝 Commits
-          
-          $COMMITS
-          
-          $(if [ $COMMIT_COUNT -gt 20 ]; then echo "_...and $(($COMMIT_COUNT - 20)) more commits_"; fi)
-          
-          ## 📂 Changed Files
-          
-          $FILES_LIST
-          
-          $(if [ $FILES_CHANGED -gt 10 ]; then echo "_...and $(($FILES_CHANGED - 10)) more files_"; fi)
-          
-          ---
-          
-          ### ✅ Checklist
-          - [ ] Code reviewed
-          - [ ] Tests added/updated
-          - [ ] Documentation updated
-          - [ ] Ready for merge
-          
-          ---
-          
-          _🤖 This PR was automatically created and is updated on each push._  
-          _Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
-          EOF
-          
-          # Replace variables in the body
-          sed -i "s|\$BRANCH|$BRANCH|g" pr_body.md
-          sed -i "s|\$COMMIT_COUNT|$COMMIT_COUNT|g" pr_body.md
-          sed -i "s|\$FILES_CHANGED|$FILES_CHANGED|g" pr_body.md
-          sed -i "s|\$FEAT_COUNT|$FEAT_COUNT|g" pr_body.md
-          sed -i "s|\$FIX_COUNT|$FIX_COUNT|g" pr_body.md
-          sed -i "s|\$DOCS_COUNT|$DOCS_COUNT|g" pr_body.md
-          sed -i "s|\$REFACTOR_COUNT|$REFACTOR_COUNT|g" pr_body.md
-          sed -i "s|\$CHORE_COUNT|$CHORE_COUNT|g" pr_body.md
-          sed -i "s|\$COMMITS|$COMMITS|g" pr_body.md
-          sed -i "s|\$FILES_LIST|$FILES_LIST|g" pr_body.md
+## 🚀 Summary
+
+**Branch:** `$BRANCH`  
+**Total Commits:** $COMMIT_COUNT  
+**Files Changed:** $FILES_CHANGED
+
+### 📊 Change Statistics
+- ✨ Features: $FEAT_COUNT
+- 🐛 Bug Fixes: $FIX_COUNT
+- 📝 Documentation: $DOCS_COUNT
+- ♻️ Refactoring: $REFACTOR_COUNT
+- 🔧 Chores: $CHORE_COUNT
+
+## 📝 Commits
+
+$COMMITS
+
+$(if [ $COMMIT_COUNT -gt 20 ]; then echo "_...and $(($COMMIT_COUNT - 20)) more commits_"; fi)
+
+## 📂 Changed Files
+
+$FILES_LIST
+
+$(if [ $FILES_CHANGED -gt 10 ]; then echo "_...and $(($FILES_CHANGED - 10)) more files_"; fi)
+
+---
+
+### ✅ Checklist
+- [ ] Code reviewed
+- [ ] Tests added/updated
+- [ ] Documentation updated
+- [ ] Ready for merge
+
+---
+
+_🤖 This PR was automatically created and is updated on each push._  
+_Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+EOF
+        
+        # Replace variables in the body
+        sed -i "s|\$BRANCH|$BRANCH|g" pr_body.md
+        sed -i "s|\$COMMIT_COUNT|$COMMIT_COUNT|g" pr_body.md
+        sed -i "s|\$FILES_CHANGED|$FILES_CHANGED|g" pr_body.md
+        sed -i "s|\$FEAT_COUNT|$FEAT_COUNT|g" pr_body.md
+        sed -i "s|\$FIX_COUNT|$FIX_COUNT|g" pr_body.md
+        sed -i "s|\$DOCS_COUNT|$DOCS_COUNT|g" pr_body.md
+        sed -i "s|\$REFACTOR_COUNT|$REFACTOR_COUNT|g" pr_body.md
+        sed -i "s|\$CHORE_COUNT|$CHORE_COUNT|g" pr_body.md
+        sed -i "s|\$COMMITS|$COMMITS|g" pr_body.md
+        sed -i "s|\$FILES_LIST|$FILES_LIST|g" pr_body.md
 
     - name: Create Draft PR
       if: steps.check-pr.outputs.pr_exists == 'false'
