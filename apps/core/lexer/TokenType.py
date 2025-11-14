@@ -122,30 +122,47 @@ reserved.update(relation_stereotypes)
 reserved.update(data_types)
 reserved.update(meta_attributes)
 
+literals = [
+    '{',
+    '}',
+    '(',
+    ')',
+    '[',
+    ']',
+    '*',
+    '@',
+    ':',
+    ',',
+    '-',
+    '<',
+    '>'
+]
 
 # Lista de tokens
 tokens = [
     "IDENTIFIER",  # Identificadores e nomes
     "STRING",  # Literais de string
     "NUMBER",  # Literais numéricos
-    "LBRACE",  # "{"
-    "RBRACE",  # "}"
-    "LPAREN",  # "("
-    "RPAREN",  # ")"
-    "LBRACKET",  # "["
-    "RBRACKET",  # "]"
+    #"LBRACE",  # "{"
+    #"RBRACE",  # "}"
+    #"LPAREN",  # "("
+    #"RPAREN",  # ")"
+    #"LBRACKET",  # "["
+    #"RBRACKET",  # "]"
     "CARDINALITY",  # ".."
     "AGGREGATIONL",  # "<>--"
     "AGGREGATIONR",  # "--<>"
     "COMPOSITIONL",  # "<o>--"
     "COMPOSITIONR",  # "--<o>"
-    "ASTERISK",  # "*"
-    "ANNOTATION",  # "@"
-    "COLON",  # ":"
-    "COMMA",  # ","
-    "DASH",  # "-" usado em functional-complexes
+    #"ASTERISK",  # "*"
+    #"ANNOTATION",  # "@"
+    #"COLON",  # ":"
+    #"COMMA",  # ","
+    #"DASH",  # "-" usado em functional-complexes
+    #"SMALLER",  # "<"
+    #"GREATER",  # ">"
     "ASSOCIATION",  # "--" usado em associações com direção irrelevante
-    "ASSOCIATIONl",  # "<--" usado em associações direcionadas reversas
+    "ASSOCIATIONL",  # "<--" usado em associações direcionadas reversas
     "ASSOCIATIONR",  # "-->" usado em associações direcionadas
     "ASSOCIATIONLR",  # "<-->" usado em associações bidirecionais
     "CLASS_NAME",

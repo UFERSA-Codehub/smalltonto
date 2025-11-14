@@ -36,28 +36,25 @@ Attributes:
 import ply.lex as lex
 
 try:
-    from .TokenType import reserved, tokens  # noqa: F401
+    from .TokenType import reserved, literals, tokens, get_token_category  # noqa: F401
 except ImportError:
-    from TokenType import reserved, tokens  # noqa: F401
+    from TokenType import reserved, literals, tokens, get_token_category  # noqa: F401
+
 
 # Globals
 lexer_errors = []
 
 
-# Token definitions
-t_LBRACE = r"\{"
-t_RBRACE = r"\}"
-t_LPAREN = r"\("
-t_RPAREN = r"\)"
-t_LBRACKET = r"\["
-t_RBRACKET = r"\]"
-t_CARDINALITY = r"\.\."
-t_COMPOSITIONL = r"<>\-\-"
-t_COMPOSITIONR = r"\-\-<>"
-t_ASTERISK = r"\*"
-t_ANNOTATION = r"@"
-t_COLON = r":"
-t_DASH = r"-"
+# Token definitions for multi-character tokens (longest first)
+t_ASSOCIATIONLR = r"<-->"
+t_ASSOCIATIONL  = r"<--"
+t_ASSOCIATIONR  = r"-->"
+t_ASSOCIATION   = r"--"
+t_AGGREGATIONL  = r"<>--"
+t_AGGREGATIONR  = r"--<>"
+t_COMPOSITIONL  = r"<o>--"
+t_COMPOSITIONR  = r"--<o>"
+t_CARDINALITY   = r"\.\."
 
 # Ignore spaces
 t_ignore = " \t"
@@ -132,6 +129,14 @@ def t_NEW_DATATYPE(t):
         >>> # Saída: Token(type='NEW_DATATYPE', value='CPFDataType')
     """
     t.type = reserved.get(t.value, "NEW_DATATYPE")
+    t.category = get_token_category(t.type)
+    return t
+
+
+def t_FUNCTIONAL_COMPLEXES(t):
+    r"functional-complexes"
+    t.type = reserved.get(t.value, "IDENTIFIER")
+    t.category = get_token_category(t.type)
     return t
 
 
@@ -162,6 +167,7 @@ def t_CLASS_NAME(t):
         >>> # Saída: Token(type='CLASS_NAME', value='Person')
     """
     t.type = reserved.get(t.value, "CLASS_NAME")
+    t.category = get_token_category(t.type)
     return t
 
 
@@ -193,6 +199,7 @@ def t_RELATION_NAME(t):
         >>> # Saída: Token(type='RELATION_NAME', value='hasParent')
     """
     t.type = reserved.get(t.value, "RELATION_NAME")  # Check for reserved words
+    t.category = get_token_category(t.type)
     return t
 
 
@@ -222,6 +229,7 @@ def t_INSTANCE_NAME(t):
         >>> # Entrada: "Planeta1"
         >>> # Saída: Token(type='INSTANCE_NAME', value='Planeta1')
     """
+    t.category = get_token_category("INSTANCE_NAME")
     return t
 
 
@@ -247,6 +255,7 @@ def t_IDENTIFIER(t):
         >>> # Saída: Token(type='KEYWORD_PACKAGE', value='package')
     """
     t.type = reserved.get(t.value, "IDENTIFIER")
+    t.category = get_token_category(t.type)
     return t
 
 
@@ -363,7 +372,7 @@ def build_lexer():
     """
     global lexer_errors
     lexer_errors = []
-    return lex.lex()
+    return lex.lex(optimize=1)
 
 
 # Build lexer

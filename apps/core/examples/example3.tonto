@@ -1,0 +1,119 @@
+// This file is designed to exercise every token defined in the lexer.
+// It includes examples for all reserved words, stereotypes, data types, meta-attributes, delimiters, operators, and identifier patterns.
+
+// Language keywords
+package ExamplePackage {
+    import anotherPackage
+    genset
+    disjoint
+    complete
+    general
+    specifics
+    where
+    specializes
+    relator
+    relators
+    functional-complexes
+}
+
+// Class stereotypes
+kind Person
+category Organization
+mixin RoleMixin
+phaseMixin PhaseMixin
+roleMixin RoleMixin
+historicalRoleMixin HistoricalRoleMixin
+collective Group
+quantity Amount
+quality Quality
+mode Mode
+intrisicMode IntrisicMode
+extrinsicMode ExtrinsicMode
+subkind Subkind
+phase Phase
+role Role
+historicalRole HistoricalRole
+situation Situation
+process Process
+event Event
+
+// Relation stereotypes
+material hasMaterial
+mediation hasMediation
+characterization hasCharacterization
+externalDependence hasExternalDependence
+componentOf hasComponentOf
+memberOf hasMemberOf
+subCollectionOf hasSubCollectionOf
+subQualityOf hasSubQualityOf
+instantiation hasInstantiation
+termination hasTermination
+participational hasParticipational
+participation hasParticipation
+historicalDependence hasHistoricalDependence
+creation hasCreation
+manifestation hasManifestation
+bringsAbout hasBringsAbout
+triggers hasTriggers
+composition hasComposition
+aggregation hasAggregation
+inherence hasInherence
+value hasValue
+formal hasFormal
+constitution hasConstitution
+derivation hasDerivation
+comparative hasComparative
+
+// Data types
+Number myNumber : Number
+String myString : String
+Boolean myBool : Boolean
+Date myDate : Date
+Time myTime : Time
+Datetime myDatetime : Datetime
+
+// Meta-attributes
+ordered
+const
+derived
+subsets
+redefines
+
+// Delimiters and punctuation
+{
+}
+(
+)
+[
+]
+:
+,
+*
+@
+
+// Multi-character operators
+..  // CARDINALITY
+<>-- // AGGREGATIONL
+--<> // AGGREGATIONR
+<o>-- // COMPOSITIONL
+--<o> // COMPOSITIONR
+-- // ASSOCIATION
+<-- // ASSOCIATIONL
+--> // ASSOCIATIONR
+<--> // ASSOCIATIONLR
+
+// Identifiers
+MyClass
+myRelation
+instance1
+Another_Class_2
+
+// New datatype
+CPFDataType
+
+// String and number literals
+"A string literal"
+12345
+
+// Comments
+// This is a comment
