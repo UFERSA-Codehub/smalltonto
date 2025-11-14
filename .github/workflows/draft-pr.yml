@@ -60,7 +60,7 @@ jobs:
         CHORE_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^chore:" || echo "0")
 
         # Construct PR body
-        cat > pr_body.md << 'EOF'
+        cat > pr_body.md <<'EOF'
 ## 🚀 Summary
 
 **Branch:** `$BRANCH`  
