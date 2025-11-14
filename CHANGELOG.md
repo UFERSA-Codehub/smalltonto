@@ -5,6 +5,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- draft action workflow ([`2a513e9`](https://github.com/ufersa-codehub/smalltonto/commit/2a513e9)) - 2025-11-14
 - checagem da branch master para comparação ([`e8ab2fc`](https://github.com/ufersa-codehub/smalltonto/commit/e8ab2fc)) - 2025-11-14
 
 ### Maintenance
