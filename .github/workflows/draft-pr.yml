@@ -53,67 +53,64 @@ jobs:
 
         # Get commit types summary
         FEAT_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^feat:" || echo "0")
-
         FIX_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^fix:" || echo "0")
-
         DOCS_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^docs:" || echo "0")
-
         REFACTOR_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^refactor:" || echo "0")
-
         CHORE_COUNT=$(git log master..HEAD --pretty=format:"%s" | grep -c "^chore:" || echo "0")
 
-        # Construct PR body
-        cat > pr_body.md <<'EOF'
-        ## 🚀 Summary
+        # Check if we have more commits/files to show
+        MORE_COMMITS=""
+        if [ $COMMIT_COUNT -gt 20 ]; then
+          MORE_COMMITS="_...and $(($COMMIT_COUNT - 20)) more commits_"
+        fi
 
-        **Branch:** `$BRANCH`  
-        **Total Commits:** $COMMIT_COUNT  
-        **Files Changed:** $FILES_CHANGED
+        MORE_FILES=""
+        if [ $FILES_CHANGED -gt 10 ]; then
+          MORE_FILES="_...and $(($FILES_CHANGED - 10)) more files_"
+        fi
 
-        ### 📊 Change Statistics
-        - ✨ Features: $FEAT_COUNT
-        - 🐛 Bug Fixes: $FIX_COUNT
-        - 📝 Documentation: $DOCS_COUNT
-        - ♻️ Refactoring: $REFACTOR_COUNT
-        - 🔧 Chores: $CHORE_COUNT
+        LAST_UPDATED=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
-        ## 📝 Commits
+        # Construct PR body using direct variable expansion
+        cat > pr_body.md <<EOF
+## 🚀 Summary
 
-        $COMMITS
+**Branch:** \`${BRANCH}\`  
+**Total Commits:** ${COMMIT_COUNT}  
+**Files Changed:** ${FILES_CHANGED}
 
-        $(if [ $COMMIT_COUNT -gt 20 ]; then echo "_...and $(($COMMIT_COUNT - 20)) more commits_"; fi)
+### 📊 Change Statistics
+- ✨ Features: ${FEAT_COUNT}
+- 🐛 Bug Fixes: ${FIX_COUNT}
+- 📝 Documentation: ${DOCS_COUNT}
+- ♻️ Refactoring: ${REFACTOR_COUNT}
+- 🔧 Chores: ${CHORE_COUNT}
 
-        ## 📂 Changed Files
+## 📝 Commits
 
-        $FILES_LIST
+${COMMITS}
 
-        $(if [ $FILES_CHANGED -gt 10 ]; then echo "_...and $(($FILES_CHANGED - 10)) more files_"; fi)
+${MORE_COMMITS}
 
-        ---
+## 📂 Changed Files
 
-        ### ✅ Checklist
-        - [ ] Code reviewed
-        - [ ] Tests added/updated
-        - [ ] Documentation updated
-        - [ ] Ready for merge
+${FILES_LIST}
 
-        ---
+${MORE_FILES}
 
-        _🤖 This PR was automatically created and is updated on each push._  
-        _Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
-        EOF
-        
-        # Replace variables in the body
-        sed -i "s|\$BRANCH|$BRANCH|g" pr_body.md
-        sed -i "s|\$COMMIT_COUNT|$COMMIT_COUNT|g" pr_body.md
-        sed -i "s|\$FILES_CHANGED|$FILES_CHANGED|g" pr_body.md
-        sed -i "s|\$FEAT_COUNT|$FEAT_COUNT|g" pr_body.md
-        sed -i "s|\$FIX_COUNT|$FIX_COUNT|g" pr_body.md
-        sed -i "s|\$DOCS_COUNT|$DOCS_COUNT|g" pr_body.md
-        sed -i "s|\$REFACTOR_COUNT|$REFACTOR_COUNT|g" pr_body.md
-        sed -i "s|\$CHORE_COUNT|$CHORE_COUNT|g" pr_body.md
-        sed -i "s|\$COMMITS|$COMMITS|g" pr_body.md
-        sed -i "s|\$FILES_LIST|$FILES_LIST|g" pr_body.md
+---
+
+### ✅ Checklist
+- [ ] Code reviewed
+- [ ] Tests added/updated
+- [ ] Documentation updated
+- [ ] Ready for merge
+
+---
+
+_🤖 This PR was automatically created and is updated on each push._  
+_Last updated: ${LAST_UPDATED}_
+EOF
 
     - name: Create Draft PR
       if: steps.check-pr.outputs.pr_exists == 'false'
