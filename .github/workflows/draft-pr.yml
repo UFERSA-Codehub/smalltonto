@@ -61,44 +61,44 @@ jobs:
 
         # Construct PR body
         cat > pr_body.md <<'EOF'
-## 🚀 Summary
+        ## 🚀 Summary
 
-**Branch:** `$BRANCH`  
-**Total Commits:** $COMMIT_COUNT  
-**Files Changed:** $FILES_CHANGED
+        **Branch:** `$BRANCH`  
+        **Total Commits:** $COMMIT_COUNT  
+        **Files Changed:** $FILES_CHANGED
 
-### 📊 Change Statistics
-- ✨ Features: $FEAT_COUNT
-- 🐛 Bug Fixes: $FIX_COUNT
-- 📝 Documentation: $DOCS_COUNT
-- ♻️ Refactoring: $REFACTOR_COUNT
-- 🔧 Chores: $CHORE_COUNT
+        ### 📊 Change Statistics
+        - ✨ Features: $FEAT_COUNT
+        - 🐛 Bug Fixes: $FIX_COUNT
+        - 📝 Documentation: $DOCS_COUNT
+        - ♻️ Refactoring: $REFACTOR_COUNT
+        - 🔧 Chores: $CHORE_COUNT
 
-## 📝 Commits
+        ## 📝 Commits
 
-$COMMITS
+        $COMMITS
 
-$(if [ $COMMIT_COUNT -gt 20 ]; then echo "_...and $(($COMMIT_COUNT - 20)) more commits_"; fi)
+        $(if [ $COMMIT_COUNT -gt 20 ]; then echo "_...and $(($COMMIT_COUNT - 20)) more commits_"; fi)
 
-## 📂 Changed Files
+        ## 📂 Changed Files
 
-$FILES_LIST
+        $FILES_LIST
 
-$(if [ $FILES_CHANGED -gt 10 ]; then echo "_...and $(($FILES_CHANGED - 10)) more files_"; fi)
+        $(if [ $FILES_CHANGED -gt 10 ]; then echo "_...and $(($FILES_CHANGED - 10)) more files_"; fi)
 
----
+        ---
 
-### ✅ Checklist
-- [ ] Code reviewed
-- [ ] Tests added/updated
-- [ ] Documentation updated
-- [ ] Ready for merge
+        ### ✅ Checklist
+        - [ ] Code reviewed
+        - [ ] Tests added/updated
+        - [ ] Documentation updated
+        - [ ] Ready for merge
 
----
+        ---
 
-_🤖 This PR was automatically created and is updated on each push._  
-_Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
-EOF
+        _🤖 This PR was automatically created and is updated on each push._  
+        _Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+        EOF
         
         # Replace variables in the body
         sed -i "s|\$BRANCH|$BRANCH|g" pr_body.md
