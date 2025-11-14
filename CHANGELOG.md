@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - correção de fluxo ([`78652ab`](https://github.com/ufersa-codehub/smalltonto/commit/78652ab)) - 2025-11-14
 
 ### Changed
+- fix(workflow): mudança no body do PR ([`55d5771`](https://github.com/ufersa-codehub/smalltonto/commit/55d5771)) - 2025-11-14
 - chore(ci): adição de fluxo com Github Actions ([`a611764`](https://github.com/ufersa-codehub/smalltonto/commit/a611764)) - 2025-11-14
 ### Documentation
 - Added automated changelog and draft PR workflows
