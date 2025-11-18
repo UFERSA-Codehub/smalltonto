@@ -37,6 +37,7 @@ jobs:
     
     - name: Generate AI PR Summary
       id: ai-summary
+      continue-on-error: true
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       run: |
@@ -51,6 +52,7 @@ jobs:
         DIFF_STAT=$(git diff master..HEAD --stat | head -30)
         
         # Build and escape prompt for JSON
+        echo "Building AI prompt..."
         PROMPT=$(printf '%s\n' \
           "Analyze these git changes and generate a PR summary in Portuguese (pt-BR):" \
           "" \
@@ -75,9 +77,12 @@ jobs:
           "SUMMARY: <summary here>" \
           "TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>" \
           | jq -Rs .)
+        echo "Prompt built successfully (length: ${#PROMPT} chars)"
         
         # Call Groq API
-        RESPONSE=$(curl -s --fail-with-body https://api.groq.com/openai/v1/chat/completions \
+        echo "Calling Groq API..."
+        set +e  # Temporarily disable exit on error
+        RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" --fail-with-body https://api.groq.com/openai/v1/chat/completions \
           -H "Authorization: Bearer $GROQ_API_KEY" \
           -H "Content-Type: application/json" \
           -d '{
@@ -95,10 +100,20 @@ jobs:
             "temperature": 0.5,
             "max_tokens": 400
           }' 2>&1)
+        CURL_EXIT=$?
+        set -e  # Re-enable exit on error
+        
+        # Extract HTTP status and response body
+        HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+        RESPONSE_BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
+        
+        echo "Curl exit code: $CURL_EXIT"
+        echo "HTTP status: $HTTP_STATUS"
+        echo "Response length: ${#RESPONSE_BODY} chars"
         
         # Check if API call succeeded
-        if [ $? -eq 0 ]; then
-          AI_CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+        if [ $CURL_EXIT -eq 0 ] && [ "$HTTP_STATUS" = "200" ]; then
+          AI_CONTENT=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content // empty')
           
           if [ -n "$AI_CONTENT" ]; then
             echo "✅ AI summary generated successfully"
@@ -120,11 +135,14 @@ jobs:
             echo "Title: $PR_TITLE"
           else
             echo "⚠️ AI response was empty, using fallback"
+            echo "API Response: $RESPONSE_BODY"
             echo "ai_success=false" >> $GITHUB_OUTPUT
           fi
         else
           echo "⚠️ Groq API call failed, using fallback"
-          echo "Response: $RESPONSE"
+          echo "Curl exit code: $CURL_EXIT"
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response body: $RESPONSE_BODY"
           echo "ai_success=false" >> $GITHUB_OUTPUT
         fi
 
