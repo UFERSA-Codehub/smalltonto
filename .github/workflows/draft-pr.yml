@@ -37,6 +37,7 @@ jobs:
     
     - name: Generate AI PR Summary
       id: ai-summary
+      continue-on-error: true
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       run: |
@@ -50,32 +51,34 @@ jobs:
         FILES_CHANGED=$(git diff --name-only master..HEAD | head -20)
         DIFF_STAT=$(git diff master..HEAD --stat | head -30)
         
-        # Escape JSON strings properly
-        PROMPT=$(cat <<'EOF'
-        Analyze these git changes and generate a PR summary in Portuguese (pt-BR):
-        
-        Branch: $BRANCH
-        
-        Commit messages:
-        $COMMIT_MESSAGES
-        
-        Files changed:
-        $FILES_CHANGED
-        
-        Diff stats:
-        $DIFF_STAT
-        
-        Generate:
-        1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)
-        2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY
-        3. Mention if it introduces new technologies, major refactoring, or significant changes
-        
-        Format your response EXACTLY as:
-        TITLE: <title here>
-        SUMMARY: <summary here>
-        TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>
-        EOF
-        )
+        # Build and escape prompt for JSON
+        echo "Building AI prompt..."
+        PROMPT=$(printf '%s\n' \
+          "Analyze these git changes and generate a PR summary in Portuguese (pt-BR):" \
+          "" \
+          "Branch: $BRANCH" \
+          "" \
+          "Commit messages:" \
+          "$COMMIT_MESSAGES" \
+          "" \
+          "Files changed:" \
+          "$FILES_CHANGED" \
+          "" \
+          "Diff stats:" \
+          "$DIFF_STAT" \
+          "" \
+          "Generate:" \
+          "1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)" \
+          "2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY" \
+          "3. Mention if it introduces new technologies, major refactoring, or significant changes" \
+          "4. Use proper formatting to make it more visually readable, instead of a bare summary." \
+          "" \
+          "Format your response EXACTLY as:" \
+          "TITLE: <title here>" \
+          "SUMMARY: <summary here>" \
+          "TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>" \
+          | jq -Rs .)
+        echo "Prompt built successfully (length: ${#PROMPT} chars)"
         
         # Now substitute variables and escape for JSON
         PROMPT=$(echo "$PROMPT" | \
@@ -86,28 +89,41 @@ jobs:
           jq -Rs .)
         
         # Call Groq API
-        RESPONSE=$(curl -s --fail-with-body https://api.groq.com/openai/v1/chat/completions \
+        echo "Calling Groq API..."
+        echo "DEBUG: About to run curl command"
+        set +e  # Temporarily disable exit on error
+        RESPONSE=$(curl -s -w "|||HTTP_STATUS:%{http_code}|||" https://api.groq.com/openai/v1/chat/completions \
           -H "Authorization: Bearer $GROQ_API_KEY" \
           -H "Content-Type: application/json" \
-          -d '{
-            "model": "llama-3.1-70b-versatile",
-            "messages": [
+          -d "{
+            \"model\": \"llama-3.3-70b-versatile\",
+            \"messages\": [
               {
-                "role": "system",
-                "content": "You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese."
+                \"role\": \"system\",
+                \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese.\"
               },
               {
-                "role": "user",
-                "content": '$PROMPT'
+                \"role\": \"user\",
+                \"content\": $PROMPT
               }
             ],
-            "temperature": 0.5,
-            "max_tokens": 400
-          }' 2>&1)
+            \"temperature\": 0.5,
+            \"max_tokens\": 400
+          }" 2>&1)
+        CURL_EXIT=$?
+        set -e  # Re-enable exit on error
+        
+        # Extract HTTP status and response body
+        HTTP_STATUS=$(echo "$RESPONSE" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
+        RESPONSE_BODY=$(echo "$RESPONSE" | sed 's/|||HTTP_STATUS:[0-9]*|||//')
+        
+        echo "Curl exit code: $CURL_EXIT"
+        echo "HTTP status: $HTTP_STATUS"
+        echo "Response length: ${#RESPONSE_BODY} chars"
         
         # Check if API call succeeded
-        if [ $? -eq 0 ]; then
-          AI_CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+        if [ $CURL_EXIT -eq 0 ] && [ "$HTTP_STATUS" = "200" ]; then
+          AI_CONTENT=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content // empty')
           
           if [ -n "$AI_CONTENT" ]; then
             echo "✅ AI summary generated successfully"
@@ -129,11 +145,14 @@ jobs:
             echo "Title: $PR_TITLE"
           else
             echo "⚠️ AI response was empty, using fallback"
+            echo "API Response: $RESPONSE_BODY"
             echo "ai_success=false" >> $GITHUB_OUTPUT
           fi
         else
           echo "⚠️ Groq API call failed, using fallback"
-          echo "Response: $RESPONSE"
+          echo "Curl exit code: $CURL_EXIT"
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response body: $RESPONSE_BODY"
           echo "ai_success=false" >> $GITHUB_OUTPUT
         fi
 
@@ -152,6 +171,17 @@ jobs:
         # Get changed files summary
         FILES_CHANGED=$(git diff --name-only master..HEAD | wc -l)
         FILES_LIST=$(git diff --name-only master..HEAD | head -10 | sed 's/^/- /')
+        
+        # Generate tree-style file list with new file indicators
+        TREE_OUTPUT=""
+        while IFS= read -r file; do
+          # Check if file is new (added)
+          if git diff --name-status master..HEAD | grep -q "^A[[:space:]]$file$"; then
+            TREE_OUTPUT+="_new_ \`$file\`"$'\n'
+          else
+            TREE_OUTPUT+="\`$file\`"$'\n'
+          fi
+        done < <(git diff --name-only master..HEAD | head -20)
 
         # Check if we have more commits/files to show
         MORE_COMMITS=""
@@ -196,7 +226,7 @@ jobs:
 
         ## 📂 Arquivos Alterados
 
-        ${FILES_LIST}
+        ${TREE_OUTPUT}
 
         ${MORE_FILES}
 
@@ -230,7 +260,7 @@ jobs:
 
         ## 📂 Arquivos Alterados
 
-        ${FILES_LIST}
+        ${TREE_OUTPUT}
 
         ${MORE_FILES}
 

@@ -211,20 +211,53 @@ def format_error_section_header():
     return f"{Colors.RED}{Colors.BOLD}Lexical Errors:{Colors.RESET}"
 
 
-def format_error_message(message):
+def format_error_message(error):
     """
     Formata mensagem de erro individual com dica adicional.
     
     Args:
-        message (str): Mensagem de erro original.
+        error: Pode ser string (formato legado) ou dict (formato novo com contexto)
     
     Returns:
         str: Mensagem formatada em vermelho com seta e dica adicional
             para caracteres ilegais.
     """
-    if message.startswith("Illegal character"):
-        message = message + ", refer to the documentation for valid characters."
-    return f"  {Colors.RED}→{Colors.RESET} {message}"
+    # Formato novo (dict com contexto completo)
+    if isinstance(error, dict):
+        lines = []
+
+        location = f"{error['filename']}:{error['line']}:{error['column']}"
+        lines.append(f"  {Colors.RED}→ {location}: {error['message']}{Colors.RESET}")
+
+        if 'line_text' in error:
+            lines.append(f"    {Colors.CYAN}{error['line_text']}{Colors.RESET}")
+
+        if 'pointer' in error:
+            lines.append(f"    {Colors.RED}{error['pointer']}{Colors.RESET}")
+    
+        # Adiciona sugestões baseadas no caractere ilegal
+        #char = error.get('character', '')
+        #if char == '$':
+        #    lines.append(f"    {Colors.YELLOW}Hint: Use '@' for annotations in TONTO{Colors.RESET}")
+        #elif char == '%':
+        #    lines.append(f"    {Colors.YELLOW}Hint: Check TONTO language specification for valid characters{Colors.RESET}")
+
+        return '\n'.join(lines)
+    
+    # Formato antigo (string simples)
+    #if isinstance(error, str):
+    #    if error.startswith("Illegal character"):
+    #        error = error + ", refer to the documentation for valid characters."
+    #    return f"  {Colors.RED}→{Colors.RESET} {error}"
+    
+    # Fallback para outros tipos
+    #return f"  {Colors.RED}→{Colors.RESET} {str(error)}"
+    
+    #if message.startswith("Illegal character"):
+    #    message = message + ", refer to the documentation for valid characters."
+    #return f"  {Colors.RED}→{Colors.RESET} {message}"
+
+    return str(error)
 
 
 def format_no_keywords_message():
@@ -376,7 +409,14 @@ def build_and_print_summary(
         content_lines.append("")  # spacing
         content_lines.append(format_error_section_header())
         for error in errors:
-            content_lines.append(format_error_message(error))
+            error_msg = format_error_message(error)
+
+            if '\n' in error_msg:
+                content_lines.extend(error_msg.split('\n'))
+            else:
+                content_lines.append(error_msg)
+                
+            #content_lines.append(format_error_message(error))
 
     # === DISTRIBUTION ===
     if category_counts:
