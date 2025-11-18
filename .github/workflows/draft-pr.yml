@@ -81,25 +81,26 @@ jobs:
         
         # Call Groq API
         echo "Calling Groq API..."
+        echo "DEBUG: About to run curl command"
         set +e  # Temporarily disable exit on error
         RESPONSE=$(curl -s -w "|||HTTP_STATUS:%{http_code}|||" https://api.groq.com/openai/v1/chat/completions \
           -H "Authorization: Bearer $GROQ_API_KEY" \
           -H "Content-Type: application/json" \
-          -d '{
-            "model": "llama-3.1-70b-versatile",
-            "messages": [
+          -d "{
+            \"model\": \"llama-3.1-70b-versatile\",
+            \"messages\": [
               {
-                "role": "system",
-                "content": "You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese."
+                \"role\": \"system\",
+                \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese.\"
               },
               {
-                "role": "user",
-                "content": '$PROMPT'
+                \"role\": \"user\",
+                \"content\": $PROMPT
               }
             ],
-            "temperature": 0.5,
-            "max_tokens": 400
-          }' 2>&1)
+            \"temperature\": 0.5,
+            \"max_tokens\": 400
+          }" 2>&1)
         CURL_EXIT=$?
         set -e  # Re-enable exit on error
         
