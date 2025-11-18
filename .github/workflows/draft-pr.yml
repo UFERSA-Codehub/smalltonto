@@ -51,9 +51,9 @@ jobs:
         DIFF_STAT=$(git diff master..HEAD --stat | head -30)
         
         # Escape JSON strings properly
-        PROMPT=$(cat <<EOF | jq -Rs .
+        PROMPT=$(cat <<'EOF'
         Analyze these git changes and generate a PR summary in Portuguese (pt-BR):
-
+        
         Branch: $BRANCH
         
         Commit messages:
@@ -76,6 +76,14 @@ jobs:
         TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>
         EOF
         )
+        
+        # Now substitute variables and escape for JSON
+        PROMPT=$(echo "$PROMPT" | \
+          sed "s|\$BRANCH|$BRANCH|g" | \
+          sed "s|\$COMMIT_MESSAGES|$COMMIT_MESSAGES|g" | \
+          sed "s|\$FILES_CHANGED|$FILES_CHANGED|g" | \
+          sed "s|\$DIFF_STAT|$DIFF_STAT|g" | \
+          jq -Rs .)
         
         # Call Groq API
         RESPONSE=$(curl -s --fail-with-body https://api.groq.com/openai/v1/chat/completions \
