@@ -71,6 +71,7 @@ jobs:
           "1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)" \
           "2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY" \
           "3. Mention if it introduces new technologies, major refactoring, or significant changes" \
+          "4. Use proper formatting to make it more visually readable, instead of a bare summary." \
           "" \
           "Format your response EXACTLY as:" \
           "TITLE: <title here>" \
@@ -91,7 +92,7 @@ jobs:
             \"messages\": [
               {
                 \"role\": \"system\",
-                \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese.This is going to be used for Github, so make it properly formatted and visually appealing instead of a bare summary.\"
+                \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese.\"
               },
               {
                 \"role\": \"user\",
@@ -162,6 +163,17 @@ jobs:
         # Get changed files summary
         FILES_CHANGED=$(git diff --name-only master..HEAD | wc -l)
         FILES_LIST=$(git diff --name-only master..HEAD | head -10 | sed 's/^/- /')
+        
+        # Generate tree-style file list with new file indicators
+        TREE_OUTPUT=""
+        while IFS= read -r file; do
+          # Check if file is new (added)
+          if git diff --name-status master..HEAD | grep -q "^A[[:space:]]$file$"; then
+            TREE_OUTPUT+="_new_ \`$file\`"$'\n'
+          else
+            TREE_OUTPUT+="\`$file\`"$'\n'
+          fi
+        done < <(git diff --name-only master..HEAD | head -20)
 
         # Check if we have more commits/files to show
         MORE_COMMITS=""
@@ -206,7 +218,7 @@ jobs:
 
         ## 📂 Arquivos Alterados
 
-        ${FILES_LIST}
+        ${TREE_OUTPUT}
 
         ${MORE_FILES}
 
@@ -240,7 +252,7 @@ jobs:
 
         ## 📂 Arquivos Alterados
 
-        ${FILES_LIST}
+        ${TREE_OUTPUT}
 
         ${MORE_FILES}
 
