@@ -50,32 +50,6 @@ jobs:
         FILES_CHANGED=$(git diff --name-only master..HEAD | head -20)
         DIFF_STAT=$(git diff master..HEAD --stat | head -30)
         
-        # Create AI prompt
-        read -r -d '' PROMPT << 'PROMPT_EOF' || true
-        Analyze these git changes and generate a PR summary in Portuguese (pt-BR):
-
-        Branch: ${BRANCH}
-        
-        Commit messages:
-        ${COMMIT_MESSAGES}
-        
-        Files changed:
-        ${FILES_CHANGED}
-        
-        Diff stats:
-        ${DIFF_STAT}
-        
-        Generate:
-        1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)
-        2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY
-        3. Mention if it introduces new technologies, major refactoring, or significant changes
-        
-        Format your response EXACTLY as:
-        TITLE: <title here>
-        SUMMARY: <summary here>
-        TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>
-        PROMPT_EOF
-        
         # Escape JSON strings properly
         PROMPT=$(cat <<EOF | jq -Rs .
         Analyze these git changes and generate a PR summary in Portuguese (pt-BR):
@@ -116,7 +90,7 @@ jobs:
               },
               {
                 "role": "user",
-                "content": '"$PROMPT"'
+                "content": '$PROMPT'
               }
             ],
             "temperature": 0.5,
