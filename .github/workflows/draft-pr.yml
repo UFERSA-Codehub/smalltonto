@@ -82,7 +82,7 @@ jobs:
         # Call Groq API
         echo "Calling Groq API..."
         set +e  # Temporarily disable exit on error
-        RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" --fail-with-body https://api.groq.com/openai/v1/chat/completions \
+        RESPONSE=$(curl -s -w "|||HTTP_STATUS:%{http_code}|||" https://api.groq.com/openai/v1/chat/completions \
           -H "Authorization: Bearer $GROQ_API_KEY" \
           -H "Content-Type: application/json" \
           -d '{
@@ -104,8 +104,8 @@ jobs:
         set -e  # Re-enable exit on error
         
         # Extract HTTP status and response body
-        HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
-        RESPONSE_BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
+        HTTP_STATUS=$(echo "$RESPONSE" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
+        RESPONSE_BODY=$(echo "$RESPONSE" | sed 's/|||HTTP_STATUS:[0-9]*|||//')
         
         echo "Curl exit code: $CURL_EXIT"
         echo "HTTP status: $HTTP_STATUS"
