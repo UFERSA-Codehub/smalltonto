@@ -33,12 +33,12 @@ import sys
 
 # Handle both relative imports (for package usage) and absolute imports (for direct script usage)
 try:
-    from .Lexer import build_lexer, get_errors
+    from .MyLexer import MyLexer
     from .TokenType import get_token_category
     from .Utils import Colors, build_and_print_summary
 except ImportError:
     # Fallback for when run as a script directly
-    from Lexer import build_lexer, get_errors
+    from MyLexer import MyLexer
     from TokenType import get_token_category
     from Utils import Colors, build_and_print_summary
 
@@ -71,7 +71,8 @@ def tokenize_file(filepath, truncate=False):
         A função termina o programa (sys.exit) em caso de erro de arquivo.
         Erros léxicos não interrompem a execução, mas são reportados.
     """
-    lexer = build_lexer()
+    lexer = MyLexer()
+    lexer.build()
 
     # Read the file
     try:
@@ -84,17 +85,16 @@ def tokenize_file(filepath, truncate=False):
         print(f"Error reading file: {e}")
         sys.exit(1)
 
-    # Tokenize
-    lexer.input(code)
+    # Tokenize - input() will reset state automatically
+    lexer.input(code, filename=filepath)
 
     # Collect all tokens and build token lines
-    token_count = 0
-    category_counts = {}
     token_lines = []
 
     # Categories we want to count
     counted_categories = {"LANGUAGE_KEYWORD", "CLASS_STEREOTYPE", "RELATION_STEREOTYPE", "DATA_TYPE", "META_ATTRIBUTE"}
 
+    # Iterate over tokens
     for tok in lexer:
         category = get_token_category(tok.type)
 
@@ -107,14 +107,14 @@ def tokenize_file(filepath, truncate=False):
         token_line = f"{tok.type:<25} {display_value:<20} {category:<20} {tok.lineno:<5} {tok.lexpos}"
         token_lines.append(token_line)
 
-        token_count += 1
+    # Get statistics from lexer (now built-in!)
+    token_count = lexer.token_count
 
-        # Only count specific categories
-        if category in counted_categories:
-            category_counts[category] = category_counts.get(category, 0) + 1
+    # Filter category counts to only counted categories
+    category_counts = {k: v for k, v in lexer.category_counts.items() if k in counted_categories}
 
-    # Get errors and build summary
-    errors = get_errors()
+    # Get errors from lexer (now an instance variable!)
+    errors = lexer.get_errors()
 
     # Build and print everything in one box
     build_and_print_summary(filepath, code, token_count, category_counts, errors, counted_categories, token_lines, truncate)
