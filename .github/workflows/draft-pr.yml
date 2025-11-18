@@ -91,7 +91,9 @@ jobs:
             \"messages\": [
               {
                 \"role\": \"system\",
-                \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese.\"
+                \"content\": \"You are a code review assistant. Analyze git changes and create concise,
+                professional PR summaries in Portuguese.
+                This is going to be used for Github, so make it properly formatted and not so bare.\"
               },
               {
                 \"role\": \"user\",
