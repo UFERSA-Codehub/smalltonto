@@ -30,12 +30,12 @@ class MyParser:
         return result                                       # Retorna a árvore sintática
 
     def p_tonto_file(self, p):
-        '''tonto_file : import_section package_declaration'''
+        '''tonto_file : import_section package_declaration package_content'''
         p[0] = {
             'node_type': 'tonto_file',
             'imports': p[1],        # Lista de imports
-            'package': p[2]       # Declaração do package
-            #'content': p[3]         # Conteúdo do package
+            'package': p[2],        # Declaração do package
+            'content': p[3]         # Conteúdo do package
         }
 
     def p_import_section(self, p):
@@ -67,6 +67,35 @@ class MyParser:
             'node_type': 'package_declaration',
             'package_name': p[2]
         }
+    
+    def p_package_content(self, p):
+        '''package_content : definition_list
+                           | empty'''
+        if p[1] is None:            # Pacote vazio
+            p[0] = []               
+        else:                       # Lista de definições
+            p[0] = p[1]
+
+    def p_definition_list(self, p):
+        '''definition_list : definition_list definition
+                           | definition'''
+        if len(p) == 3:             # Múltiplas definições
+            p[0] = p[1] + [p[2]]    
+        else:                       # Única definição
+            p[0] = [p[1]]
+            
+    def p_definition(self, p):
+        '''definition : class_definition'''
+        p[0] = p[1]
+
+    def p_class_definition(self, p):
+        '''class_definition : CLASS_KIND IDENTIFIER '{' '}' '''
+        p[0] = {
+            'node_type': 'class_definition',
+            'class_stereotype': 'kind',
+            'class_name': p[2],
+            'body': []  # Corpo vazio por enquanto
+        }
 
     def p_empty(self, p):
         '''empty :'''
@@ -75,5 +104,6 @@ class MyParser:
     def p_error(self, p):
         if p:
             self.errors.append(f"Syntax error at token '{p.value}' (type: {p.type}) on line {p.lineno}")
+
         else:
             self.errors.append("Syntax error at EOF")
