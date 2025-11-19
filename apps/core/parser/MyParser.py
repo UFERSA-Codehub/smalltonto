@@ -14,6 +14,7 @@ class MyParser:
         self.lexer = lexer                                  # Instância do analisador léxico
         self.parser = None                                  # Instância do parser PLY
         self.errors = []                                    # Lista de erros encontrados
+        self.filename = None                                # Nome do arquivo sendo processado
 
     def build(self, **kwargs):
         """Constrói o analisador sintático."""
@@ -25,6 +26,7 @@ class MyParser:
 
     def parse(self, data, filename=None):
         """Analisa os dados de entrada e retorna a árvore sintática."""
+        self.filename = filename                            # Armazena o nome do arquivo
         self.lexer.input(data, filename)                    # Fornece os dados ao lexer
         result = self.parser.parse(lexer=self.lexer.lexer)  # Executa a análise sintática
         return result                                       # Retorna a árvore sintática
@@ -101,9 +103,79 @@ class MyParser:
         '''empty :'''
         p[0] = None
 
-    def p_error(self, p):
-        if p:
-            self.errors.append(f"Syntax error at token '{p.value}' (type: {p.type}) on line {p.lineno}")
+    def find_column(self, p, token_index):
+        """Retorna a coluna do token na linha."""
+        if not hasattr(p.slice[token_index], 'lexpos'):
+            return 1
+        pos = p.slice[token_index].lexpos
+        line_start = self.lexer.input_text.rfind('\n', 0, pos) + 1
+        return (pos - line_start) + 1
 
+    def get_error_context(self, p, token_index):
+        """Retorna o contexto do erro para um token específico."""
+        if not hasattr(p.slice[token_index], 'lexpos'):
+            return ""
+        pos = p.slice[token_index].lexpos
+        line_start = self.lexer.input_text.rfind('\n', 0, pos) + 1
+        line_end = self.lexer.input_text.find('\n', pos)
+        
+        if line_end == -1:
+            line_end = len(self.lexer.input_text)
+        return self.lexer.input_text[line_start:line_end]
+
+    def format_error_pointer(self, p, token_index):
+        """Cria o ponteiro visual para o erro."""
+        column = self.find_column(p, token_index)
+        return ' ' * (column - 1) + '^'
+
+    def p_error(self, p):
+        """Trata erros de sintaxe durante a análise."""
+        if p:
+            # Obter tokens esperados
+            state = self.parser.state
+            expected = []
+
+            if hasattr(self.parser, 'action') and state in self.parser.action:
+                expected = list(self.parser.action[state].keys())
+                # Filtrar tokens especiais
+                expected = [tok for tok in expected if tok not in ('$end', 'error')]
+
+            # Construir mensagem de erro
+            column = self.lexer.find_column(p)
+            line_text = self.lexer.get_error_context(p)
+            pointer = self.lexer.format_error_pointer(p)
+            
+            error_message = f"Unexpected token '{p.value}' (type: {p.type})"
+            if expected:
+                expected_str = ', '.join(expected)
+                error_message += f". Expected one of: {expected_str}"
+            
+            error_info = {
+                'type': 'SyntaxError',
+                'token': p.value,
+                'token_type': p.type,
+                'line': p.lineno,
+                'column': column,
+                'line_text': line_text,
+                'pointer': pointer,
+                'filename': self.filename or '<unknown>',
+                'message': error_message,
+                'expected': expected
+            }
+            
+            self.errors.append(error_info)
         else:
-            self.errors.append("Syntax error at EOF")
+            # Erro no final do arquivo
+            error_info = {
+                'type': 'SyntaxError',
+                'token': 'EOF',
+                'token_type': 'EOF',
+                'line': 'EOF',
+                'column': 0,
+                'line_text': '',
+                'pointer': '',
+                'filename': self.filename or '<unknown>',
+                'message': 'Unexpected end of file',
+                'expected': []
+            }
+            self.errors.append(error_info)

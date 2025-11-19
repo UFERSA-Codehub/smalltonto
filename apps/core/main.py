@@ -21,22 +21,67 @@ def test_parser(filepath, truncate=False):
         print(f"Error reading file: {e}")
         sys.exit(1)
 
-    #source_code = "package projectMecJhonsons"
-
     print("Parsing...")
     ast = parser.parse(code, filename=filepath)
 
-    if parser.errors:
+    has_errors = False                                  # Flag para indicar se houve erros
+
+    if lexer.errors:                                    # Verifica erros léxicos, se houver, pula análise sintática
+        has_errors = True
+        print("\nLexical Errors:")
+        for error in lexer.errors:
+            error_msg = format_lexer_error(error)
+            print(error_msg)
+        print("\nParsing aborted due to lexical errors.")
+        return None
+    
+    if parser.errors:                                   # Verifica erros sintáticos
+        has_errors = True
         print("\nSyntax Errors:")
         for error in parser.errors:
-            print(f" - {error}")
-        return
+            error_msg = format_parser_error(error)
+            print(error_msg)
 
-    print("\nParsing Finished")
+    if has_errors:                                      # Se houve erros, parou por aqui
+        return None
+
+    print("\nParsing completed successfully!")
     print("\nAST Output:")
     print(json.dumps(ast, indent=2))
 
     return ast
+
+def format_lexer_error(error):
+    if isinstance(error, dict):
+        lines = []
+        location = f"{error['filename']}:{error['line']}:{error['column']}"
+        lines.append(f"  → {location}: {error['message']}")
+        
+        if 'line_text' in error and error['line_text']:
+            lines.append(f"    {error['line_text']}")
+        
+        if 'pointer' in error and error['pointer']:
+            lines.append(f"    {error['pointer']}")
+        
+        return '\n'.join(lines)
+    
+    return f"  → {str(error)}"
+
+def format_parser_error(error):
+    if isinstance(error, dict):
+        lines = []
+        location = f"{error['filename']}:{error['line']}:{error['column']}"
+        lines.append(f"  → {location}: {error['message']}")
+        
+        if 'line_text' in error and error['line_text']:
+            lines.append(f"    {error['line_text']}")
+        
+        if 'pointer' in error and error['pointer']:
+            lines.append(f"    {error['pointer']}")
+        
+        return '\n'.join(lines)
+    
+    return f"  → {str(error)}"
 
 def main():
     if len(sys.argv) < 2:

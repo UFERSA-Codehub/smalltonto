@@ -1,3 +1,4 @@
 package University
-    kind Person {
+    kind Person ${
+        mec mec mec mec
     }
