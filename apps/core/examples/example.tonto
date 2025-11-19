@@ -9,6 +9,7 @@ package University {
         student: Student [1..*]
         course: Course [1..*]
     }
-
+    // this is a comment
     PhoneDataType phoneNumber
+    this-test
 }
