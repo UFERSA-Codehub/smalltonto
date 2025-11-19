@@ -135,22 +135,22 @@ class MyLexer:
         t.category = get_token_category(t.type)
         return t
 
-    def t_CLASS_NAME(self, t):
-        r"[A-Z][a-zA-Z_]*"
-        t.type = reserved.get(t.value, "CLASS_NAME")
-        t.category = get_token_category(t.type)
-        return t
+    # def t_CLASS_NAME(self, t):
+    #     r"[A-Z][a-zA-Z_]*"
+    #     t.type = reserved.get(t.value, "CLASS_NAME")
+    #     t.category = get_token_category(t.type)
+    #     return t
 
-    def t_RELATION_NAME(self, t):
-        r"[a-z][a-zA-Z_]*"
-        t.type = reserved.get(t.value, "RELATION_NAME")
-        t.category = get_token_category(t.type)
-        return t
+    # def t_RELATION_NAME(self, t):
+    #     r"[a-z][a-zA-Z_]*"
+    #     t.type = reserved.get(t.value, "RELATION_NAME")
+    #     t.category = get_token_category(t.type)
+    #     return t
 
-    def t_INSTANCE_NAME(self, t):
-        r"[a-zA-Z_]+[0-9]+"
-        t.category = get_token_category("INSTANCE_NAME")
-        return t
+    # def t_INSTANCE_NAME(self, t):
+    #     r"[a-zA-Z_]+[0-9]+"
+    #     t.category = get_token_category("INSTANCE_NAME")
+    #     return t
 
     def t_IDENTIFIER(self, t):
         r"[a-zA-Z_][a-zA-Z0-9_]*"

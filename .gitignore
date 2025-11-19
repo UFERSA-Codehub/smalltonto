@@ -16,3 +16,7 @@ node_modules
 
 # Lexer stuff
 lextab.*
+
+# Parser stuff
+parsetab.*
+parser.out
