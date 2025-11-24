@@ -1,4 +1,9 @@
 package University
-    kind Person ${
-        mec mec mec mec
+    kind Person {
+        
     }
+
+    disjoint complete genset AgePhase {
+                general LivingPerson
+                specifics Child, Teenager, Adult
+            }
