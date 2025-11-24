@@ -2,6 +2,7 @@ from lexer.MyLexer import MyLexer
 from parser.MyParser import MyParser
 import json
 import sys
+import os
 
 lexer = MyLexer()
 lexer.build()
@@ -22,7 +23,7 @@ def test_parser(filepath, truncate=False):
         sys.exit(1)
 
     print("Parsing...")
-    ast = parser.parse(code, filename=filepath)
+    ast = parser.parse(code, filename=os.path.abspath(filepath))
 
     has_errors = False                                  # Flag para indicar se houve erros
 

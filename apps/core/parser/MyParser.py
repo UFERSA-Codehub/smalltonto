@@ -91,13 +91,50 @@ class MyParser:
         p[0] = p[1]
 
     def p_class_definition(self, p):
-        '''class_definition : CLASS_KIND IDENTIFIER '{' '}' '''
-        p[0] = {
-            'node_type': 'class_definition',
-            'class_stereotype': 'kind',
-            'class_name': p[2],
-            'body': []  # Corpo vazio por enquanto
-        }
+        '''class_definition : class_stereotype IDENTIFIER
+                            | class_stereotype IDENTIFIER '{' '}' '''
+
+        if len(p) == 3:
+            p[0] = {
+                'node_type': 'class_definition',
+                'class_stereotype': p[1],
+                'class_name': p[2],
+                'body': None
+            }
+        else:
+            p[0] = {
+                'node_type': 'class_definition',
+                'class_stereotype': p[1],
+                'class_name': p[2],
+                'body': []
+            }
+
+    def p_class_stereotype(self, p):
+        '''class_stereotype : CLASS_EVENT
+                            | CLASS_SITUATION
+                            | CLASS_PROCESS
+                            | CLASS_CATEGORY
+                            | CLASS_MIXIN
+                            | CLASS_PHASEMIXIN
+                            | CLASS_ROLEMIXIN
+                            | CLASS_HISTORICALROLEMIXIN
+                            | CLASS_KIND
+                            | CLASS_COLLECTIVE
+                            | CLASS_QUANTITY
+                            | CLASS_QUALITY
+                            | CLASS_MODE
+                            | CLASS_INTRISICMODE
+                            | CLASS_EXTRINSICMODE
+                            | CLASS_SUBKIND
+                            | CLASS_PHASE
+                            | CLASS_ROLE
+                            | CLASS_HISTORICALROLE
+                            | KEYWORD_RELATOR'''
+        p[0] = p[1]
+
+    def p_specialization(self, p):
+        
+
 
     def p_empty(self, p):
         '''empty :'''
