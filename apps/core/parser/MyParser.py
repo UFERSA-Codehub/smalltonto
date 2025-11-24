@@ -87,12 +87,16 @@ class MyParser:
             p[0] = [p[1]]
             
     def p_definition(self, p):
-        '''definition : class_definition'''
+        '''definition : class_definition
+                        | genset_definition'''
         p[0] = p[1]
 
     def p_class_definition(self, p):
         '''class_definition : class_stereotype IDENTIFIER
                             | class_stereotype IDENTIFIER '{' '}' '''
+
+        #TODO tratar caso de uso com functional-complexes
+        #ex: phase Adulto of functional-complexes specializes Paciente
 
         if len(p) == 3:
             p[0] = {
@@ -132,8 +136,56 @@ class MyParser:
                             | KEYWORD_RELATOR'''
         p[0] = p[1]
 
-    def p_specialization(self, p):
-        
+    #def p_specialization(self, p):
+
+    def p_identifier_list(self, p):
+        '''identifier_list : identifier_list ',' IDENTIFIER
+                           | IDENTIFIER'''
+        if len(p) == 4:  # Lista existente + vírgula + novo ID
+            p[0] = p[1] + [p[3]]
+        else:            # Primeiro ID
+            p[0] = [p[1]]
+
+    def p_genset_definition(self, p):
+        '''genset_definition : genset_properties KEYWORD_GENSET IDENTIFIER '{' genset_body '}' '''
+        p[0] = {
+            'node_type': 'genset_definition',
+            'properties': p[1],     # disjoint, complete, etc.
+            'genset_name': p[3],
+            'general': p[5]['general'],
+            'specifics': p[5]['specifics']
+        }
+
+    def p_genset_properties(self, p):
+        '''genset_properties : KEYWORD_DISJOINT KEYWORD_COMPLETE
+                             | KEYWORD_COMPLETE KEYWORD_DISJOINT
+                             | KEYWORD_DISJOINT
+                             | KEYWORD_COMPLETE
+                             | empty'''
+        # Normaliza para uma lista de propriedades
+        if len(p) == 3:
+            p[0] = [p[1], p[2]]
+        elif len(p) == 2 and p[1] is not None:
+            p[0] = [p[1]]
+        else:
+            p[0] = []
+
+    def p_genset_body(self, p):
+        '''genset_body : general_clause specifics_clause'''
+        p[0] = {
+            'general': p[1],
+            'specifics': p[2]
+        }
+
+    def p_general_clause(self, p):
+        '''general_clause : KEYWORD_GENERAL IDENTIFIER'''
+        p[0] = p[2] # Retorna apenas o nome da classe geral
+
+    def p_specifics_clause(self, p):
+        '''specifics_clause : KEYWORD_SPECIFICS identifier_list'''
+        p[0] = p[2] # Retorna a lista de identificadores
+
+    #TODO regra para identificar keyword WHERE
 
 
     def p_empty(self, p):
