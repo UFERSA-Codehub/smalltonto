@@ -147,28 +147,50 @@ class MyParser:
             p[0] = [p[1]]
 
     def p_genset_definition(self, p):
-        '''genset_definition : genset_properties KEYWORD_GENSET IDENTIFIER '{' genset_body '}' '''
-        p[0] = {
-            'node_type': 'genset_definition',
-            'properties': p[1],     # disjoint, complete, etc.
-            'genset_name': p[3],
-            'general': p[5]['general'],
-            'specifics': p[5]['specifics']
-        }
+        '''genset_definition : genset_properties KEYWORD_GENSET IDENTIFIER '{' genset_body '}'
+                             | genset_properties KEYWORD_GENSET IDENTIFIER KEYWORD_WHERE identifier_list KEYWORD_SPECIALIZES IDENTIFIER'''
+        
+        if len(p) == 7: # Caso 1: Sintaxe de Bloco ({ ... })
+            p[0] = {
+                'node_type': 'genset_definition',
+                'syntax_style': 'block',
+                'properties': p[1],
+                'genset_name': p[3],
+                'general': p[5]['general'],
+                'specifics': p[5]['specifics']
+            }
+        else: # Caso 2: Sintaxe Inline (where ... specializes ...)
+            # Ex: disjoint complete genset PersonAgeGroup where Child, Adult specializes Person
+            # p[1]=props, p[2]=genset, p[3]=Name, p[4]=where, p[5]=[Child, Adult], p[6]=specializes, p[7]=Person
+            p[0] = {
+                'node_type': 'genset_definition',
+                'syntax_style': 'inline',
+                'properties': p[1],
+                'genset_name': p[3],
+                'general': p[7],      # A classe mãe vem no fim
+                'specifics': p[5]     # A lista de filhas vem depois do 'where'
+            }
 
     def p_genset_properties(self, p):
-        '''genset_properties : KEYWORD_DISJOINT KEYWORD_COMPLETE
-                             | KEYWORD_COMPLETE KEYWORD_DISJOINT
-                             | KEYWORD_DISJOINT
-                             | KEYWORD_COMPLETE
+        '''genset_properties : property_list
                              | empty'''
-        # Normaliza para uma lista de propriedades
+        p[0] = p[1] if p[1] is not None else []
+
+    def p_property_list(self, p):
+        '''property_list : property_list genset_property
+                         | genset_property'''
         if len(p) == 3:
-            p[0] = [p[1], p[2]]
-        elif len(p) == 2 and p[1] is not None:
-            p[0] = [p[1]]
+            p[0] = p[1] + [p[2]]
         else:
-            p[0] = []
+            p[0] = [p[1]]
+
+    def p_genset_property(self, p):
+        '''genset_property : KEYWORD_DISJOINT
+                           | KEYWORD_COMPLETE'''
+        
+        #TODO verificar uso de keywords OVERLAPPING e INCOMPLETE aqui
+        
+        p[0] = p[1]
 
     def p_genset_body(self, p):
         '''genset_body : general_clause specifics_clause'''

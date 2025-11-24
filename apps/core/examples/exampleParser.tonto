@@ -7,3 +7,10 @@ package University
                 general LivingPerson
                 specifics Child, Teenager, Adult
             }
+    
+    disjoint complete genset PersonAgeGroup where Child, Adult specializes Person 
+
+    genset PersonAgeGroup {
+        general Person
+        specifics Child, Adult
+    }
