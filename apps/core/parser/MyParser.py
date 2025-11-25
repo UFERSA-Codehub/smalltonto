@@ -182,8 +182,56 @@ class MyParser:
             p[0] = p[1] + [p[2]]
 
     def p_class_body_item(self, p):
-        '''class_body_item : attribute'''
+        '''class_body_item : attribute
+                           | internal_relation'''
         p[0] = p[1]
+
+    def p_internal_relation(self, p):
+        '''internal_relation : relation_stereotype_optional relation_operator IDENTIFIER relation_operator cardinality IDENTIFIER
+                             | relation_stereotype_optional cardinality relation_operator IDENTIFIER relation_operator cardinality IDENTIFIER'''
+
+                             # 1: @stereotype -- relationNome -- [1] TargetClass
+                             # 2: @stereotype [1] <>-- relationNome -- [1..*] TargetClass
+
+        if len(p) == 7:                     # Formato sem cardinalidade inicial
+            p[0] = {
+                'node_type': 'internal_relation',
+                'relation_stereotype': p[1],
+                'first_cardinality': None,
+                'operator_left': p[2],
+                'relation_name': p[3],
+                'operator_right': p[4],
+                'second_cardinality': p[5],
+                'target_class': p[6]
+            }
+        else:                               # Formato com cardinalidade inicial
+            p[0] = {
+                'node_type': 'internal_relation',
+                'relation_stereotype': p[1],
+                'first_cardinality': p[2],
+                'operator_left': p[3],
+                'relation_name': p[4],
+                'operator_right': p[5],
+                'second_cardinality': p[6],
+                'target_class': p[7]
+            }
+    
+    def p_relation_stereotype_optional(self, p):
+        '''relation_stereotype_optional : '@' relation_stereotype
+                                       | empty'''
+        if p[1] is None:            # Sem estereótipo
+            p[0] = None
+        else:                       # Com estereótipo
+            p[0] = p[2]
+    
+    def p_relation_stereotype(self, p):
+        '''relation_stereotype : RELATION_MATERIAL
+                               | RELATION_DERIVATION
+                               | RELATION_COMPARATIVE
+                               | RELATION_MEDIATION
+                               | RELATION_CHARACTERIZATION
+                               | RELATION_EXTERNALDEPENDENCE
+                               #TODO Adicionar outros estereótipos de relação do @TokenType.py!!!!'''
 
 # ======================================= ATTRIBUTE DEFINITION ======================================= #
 # Definição de atributos com tipo, cardinalidade e meta-atributos
@@ -447,13 +495,15 @@ class MyParser:
                 'categorizer': None,
                 'specifics': p[4]
             }
-        else:                               # Com categorizer
+        else:                              # Com categorizer
             p[0] = {
                 'general': p[2],
                 'categorizer': p[4],
                 'specifics': p[6]
             }
     
+
+
 
 # ======================================= GENERIC RULES ======================================= #
 

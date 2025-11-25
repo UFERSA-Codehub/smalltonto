@@ -39,6 +39,8 @@ language_keywords = {
     "specializes": "KEYWORD_SPECIALIZES",
     "relator": "KEYWORD_RELATOR",
     "relators": "KEYWORD_RELATORS",
+    "relation": "KEYWORD_RELATION",
+    "inverseOf": "KEYWORD_INVERSEOF",
     # TODO: Adicionar o restante das palavras reservadas!
     # "specializes" // ✅
     # "," //  ✅
