@@ -24,6 +24,9 @@ Examples:
 
 # Define as palavras reservadas da linguagem
 language_keywords = {
+    "categorizer": "KEYWORD_CATEGORIZER",
+    "enum": "KEYWORD_ENUM",
+    "datatype": "KEYWORD_DATATYPE",
     "genset": "KEYWORD_GENSET",
     "disjoint": "KEYWORD_DISJOINT",
     "complete": "KEYWORD_COMPLETE",
