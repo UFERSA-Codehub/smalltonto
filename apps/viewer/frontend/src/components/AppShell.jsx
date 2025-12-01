@@ -39,6 +39,9 @@ export default function AppShell({ children }) {
   const [selectedTokenIndex, setSelectedTokenIndex] = useState(null);
   const [highlightRequest, setHighlightRequest] = useState(null);
 
+  // AST Viewer state
+  const [selectedAstNode, setSelectedAstNode] = useState(null);
+
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const [confirmDialog, setConfirmDialog] = useState(null);
@@ -340,6 +343,8 @@ export default function AppShell({ children }) {
     setSelectedTokenIndex,
     highlightRequest,
     setHighlightRequest,
+    selectedAstNode,
+    setSelectedAstNode,
     settings,
     updateSetting,
     resetSettings,

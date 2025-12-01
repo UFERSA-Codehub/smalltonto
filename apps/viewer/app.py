@@ -1,4 +1,5 @@
 import os
+import sys
 
 os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu")
 
@@ -22,7 +23,13 @@ class ViewerAPI(FileSystemAPI, ParserAPI):
 
 
 def get_frontend_path() -> str:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    if getattr(sys, "frozen", False):
+        # Running as PyInstaller bundle
+        base_dir = sys._MEIPASS
+    else:
+        # Running as script
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
     dist_path = os.path.join(base_dir, "frontend", "dist", "index.html")
 
     if not os.path.exists(dist_path):

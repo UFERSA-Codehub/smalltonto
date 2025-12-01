@@ -11,13 +11,107 @@
   color: var(--color-text-muted);
 }
 
-.main-content--ide,
-.main-content--ast {
-  align-items: flex-start;
-  justify-content: flex-start;
+.main-content--ide {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
 }
 
-/* Placeholder styles for development */
+.main-content--ast {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  overflow: hidden;
+}
+
+.main-content--error {
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Empty/Warning/Error message styles */
+.main-content__message {
+  text-align: center;
+  max-width: 400px;
+}
+
+.main-content__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--color-text-muted);
+}
+
+.main-content__icon--warning {
+  color: var(--color-warning);
+}
+
+.main-content__icon--error {
+  color: var(--color-error);
+}
+
+.main-content__title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.main-content__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.main-content__subtitle code {
+  background: var(--color-surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Error container */
+.main-content__error-container {
+  width: 100%;
+  max-width: 600px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.main-content__error-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.main-content__error-header .main-content__icon {
+  margin: 0;
+}
+
+.main-content__error-header .main-content__title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.main-content__error-header .main-content__subtitle {
+  margin: 0;
+  font-size: 12px;
+}
+
+.main-content__error-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Legacy placeholder styles (can be removed later) */
 .ide-placeholder,
 .ast-placeholder {
   width: 100%;
