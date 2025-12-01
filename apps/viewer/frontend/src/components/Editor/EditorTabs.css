@@ -1,0 +1,96 @@
+.editor-tabs {
+  display: flex;
+  align-items: center;
+  background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 36px;
+}
+
+.editor-tabs__list {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+}
+
+/* Hide scrollbar but allow scrolling */
+.editor-tabs__list::-webkit-scrollbar {
+  height: 0;
+}
+
+.editor-tabs__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border-right: 1px solid var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s ease;
+  user-select: none;
+}
+
+.editor-tabs__tab:hover {
+  background: var(--color-surface-hover);
+}
+
+.editor-tabs__tab--active {
+  background: var(--color-background);
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: -1px;
+}
+
+.editor-tabs__tab--active:hover {
+  background: var(--color-background);
+}
+
+.editor-tabs__tab-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor-tabs__dirty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.editor-tabs__close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+
+.editor-tabs__tab:hover .editor-tabs__close-btn,
+.editor-tabs__tab--active .editor-tabs__close-btn {
+  opacity: 1;
+}
+
+.editor-tabs__close-btn:hover {
+  background: var(--color-surface-active);
+  color: var(--color-text);
+}
+
+/* Always show close button for dirty tabs */
+.editor-tabs__tab--dirty .editor-tabs__close-btn {
+  opacity: 1;
+}

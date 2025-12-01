@@ -1,0 +1,138 @@
+.analysis-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background-secondary);
+  border-left: 1px solid var(--color-border);
+  transition: width 0.15s ease, min-width 0.15s ease;
+}
+
+.analysis-panel--resizing {
+  transition: none;
+}
+
+.analysis-panel__resize-handle {
+  position: absolute;
+  top: 0;
+  left: -2px;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+}
+
+.analysis-panel__resize-handle:hover {
+  background: var(--color-primary);
+  opacity: 0.5;
+}
+
+.analysis-panel__resize-handle:active,
+.analysis-panel--resizing .analysis-panel__resize-handle {
+  background: var(--color-primary);
+  opacity: 0.8;
+}
+
+.analysis-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--color-border);
+  min-height: 36px;
+}
+
+.analysis-panel--collapsed .analysis-panel__header {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.analysis-panel__tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.analysis-panel__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.analysis-panel__tab:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.analysis-panel__tab--active {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.analysis-panel__tab--has-errors {
+  color: var(--color-error);
+}
+
+.analysis-panel__tab--has-errors.analysis-panel__tab--active {
+  color: var(--color-error);
+}
+
+.analysis-panel__tab-count {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--color-surface-active);
+  border-radius: 10px;
+  color: var(--color-text-muted);
+}
+
+.analysis-panel__tab--has-errors .analysis-panel__tab-count {
+  background: var(--color-error);
+  color: white;
+}
+
+.analysis-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.analysis-panel__toggle:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.analysis-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.analysis-panel__content--hidden {
+  display: none;
+}
+
+.analysis-panel__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}

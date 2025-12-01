@@ -1,0 +1,96 @@
+/* Global styles for Tonto Viewer */
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Default CSS variables - will be overwritten by theme.js */
+  --color-background: #eff1f5;
+  --color-background-secondary: #e6e9ef;
+  --color-background-tertiary: #dce0e8;
+  --color-surface: #ccd0da;
+  --color-surface-hover: #bcc0cc;
+  --color-surface-active: #acb0be;
+  --color-text: #4c4f69;
+  --color-text-secondary: #5c5f77;
+  --color-text-muted: #6c6f85;
+  --color-border: #bcc0cc;
+  --color-border-hover: #acb0be;
+  --color-primary: #1e66f5;
+  --color-error: #d20f39;
+  --color-warning: #df8e1d;
+  --color-success: #40a02b;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Reset default button styles */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+/* Reset default input styles */
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-active);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Selection */
+::selection {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Code font */
+code,
+pre {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}

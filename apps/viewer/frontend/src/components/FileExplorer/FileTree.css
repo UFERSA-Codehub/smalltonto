@@ -1,0 +1,84 @@
+.file-tree {
+  padding: 4px 0;
+  font-size: 13px;
+  user-select: none;
+}
+
+.file-tree--loading,
+.file-tree--error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+  gap: 8px;
+}
+
+.file-tree--error button {
+  padding: 4px 12px;
+  font-size: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.file-tree--error button:hover {
+  background: var(--color-surface-hover);
+}
+
+.file-tree-item__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+}
+
+.file-tree-item__row:hover {
+  background: var(--color-surface-hover);
+}
+
+.file-tree-item__row--selected {
+  background: var(--color-surface-active);
+}
+
+.file-tree-item__row--selected:hover {
+  background: var(--color-surface-active);
+}
+
+.file-tree-item__icon {
+  width: 16px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.file-tree-item__icon--folder {
+  color: var(--color-primary);
+}
+
+.file-tree-item__row--tonto .file-tree-item__icon {
+  color: var(--color-success);
+}
+
+.file-tree-item__name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text);
+}
+
+.file-tree-item__row--tonto .file-tree-item__name {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.file-tree-item__children {
+  /* Indentation handled by padding-left in component */
+}
