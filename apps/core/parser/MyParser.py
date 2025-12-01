@@ -187,8 +187,8 @@ class MyParser:
         p[0] = p[1]
 
     def p_internal_relation(self, p):
-        '''internal_relation : relation_stereotype_optional relation_operator IDENTIFIER relation_operator cardinality IDENTIFIER
-                             | relation_stereotype_optional cardinality relation_operator IDENTIFIER relation_operator cardinality IDENTIFIER'''
+        '''internal_relation : relation_stereotype_optional relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER
+                             | relation_stereotype_optional cardinality relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER'''
 
                              # 1: @stereotype -- relationNome -- [1] TargetClass
                              # 2: @stereotype [1] <>-- relationNome -- [1..*] TargetClass
@@ -231,7 +231,25 @@ class MyParser:
                                | RELATION_MEDIATION
                                | RELATION_CHARACTERIZATION
                                | RELATION_EXTERNALDEPENDENCE
-                               #TODO Adicionar outros estereótipos de relação do @TokenType.py!!!!'''
+                               '''
+                               #TODO Adicionar outros estereótipos de relação do @TokenType.py!!!!
+        p[0] = p[1]
+
+    def p_relation_operator_left(self, p):
+        '''relation_operator_left : ASSOCIATION
+                                  | ASSOCIATIONL
+                                  | ASSOCIATIONLR
+                                  | AGGREGATIONL
+                                  | COMPOSITIONL'''
+        p[0] = p[1]
+
+    def p_relation_operator_right(self, p):
+        '''relation_operator_right : ASSOCIATION
+                                   | ASSOCIATIONR
+                                   | ASSOCIATIONLR
+                                   | AGGREGATIONR
+                                   | COMPOSITIONR'''
+        p[0] = p[1]
 
 # ======================================= ATTRIBUTE DEFINITION ======================================= #
 # Definição de atributos com tipo, cardinalidade e meta-atributos

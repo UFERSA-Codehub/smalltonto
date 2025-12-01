@@ -35,6 +35,8 @@ class MyLexer:
         self.errors = []                # Limpa a lista de erros
         self.token_count = 0            # Limpa o contador total de tokens
         self.category_counts = {}       # Limpa o contador de categorias de tokens
+        if self.lexer:
+            self.lexer.lineno = 1       # Reseta o número da linha para 1
 
     def input(self, data, filename=None):
         """Fornece dados de entrada para o analisador léxico."""
