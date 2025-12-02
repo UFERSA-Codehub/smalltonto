@@ -11,9 +11,8 @@ dist
 node_modules
 
 # others
-*.tonto
 *.exe
-*.tonto
+
 
 # Lexer stuff
 lextab.*
