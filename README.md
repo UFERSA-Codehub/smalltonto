@@ -69,13 +69,13 @@ Executáveis pré-compilados estão disponíveis na aba [Releases](https://githu
         <td><strong>Viewer (Desktop)</strong></td>
         <td>Interface gráfica com editor e visualização de AST</td>
         <td><a href="https://github.com/UFERSA-Codehub/smalltonto/releases/tag/v0.1.1">v0.1.1</a> (Windows)</td>
-        <td><a href="apps/viewer/README.md#build">Instruções</a></td>
+        <td><a href="apps/viewer/README.md">Instruções</a></td>
       </tr>
       <tr>
         <td><strong>Core (CLI)</strong></td>
         <td>Análise léxica e sintática via terminal</td>
         <td><a href="https://github.com/UFERSA-Codehub/smalltonto/releases/tag/v1.0.0">v1.0.0</a> (Windows)</td>
-        <td><a href="apps/core/README.md#instalação">Instruções</a></td>
+        <td><a href="apps/core/README.md">Instruções</a></td>
       </tr>
     </tbody>
   </table>
