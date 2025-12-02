@@ -106,6 +106,7 @@ class MyParser:
                       | datatype_definition
                       | enum_definition
                       | genset_definition
+                      | external_relation
         '''
         p[0] = p[1]
 
@@ -188,32 +189,63 @@ class MyParser:
 
     def p_internal_relation(self, p):
         '''internal_relation : relation_stereotype_optional relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER
-                             | relation_stereotype_optional cardinality relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER'''
+                             | relation_stereotype_optional cardinality relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER
+                             | relation_stereotype_optional relation_operator_left cardinality IDENTIFIER
+                             | relation_stereotype_optional cardinality relation_operator_left cardinality IDENTIFIER'''
+                        
+        # Format 1: @stereotype -- relationName -- [1] SecondEnd          (len=7, named, no first card)
+        # Format 2: @stereotype [1] -- relationName -- [1..*] SecondEnd   (len=8, named, with first card)
+        # Format 3: @stereotype -- [1] SecondEnd                          (len=5, unnamed, no first card)
+        # Format 4: @stereotype [1..*] -- [1] SecondEnd                   (len=6, unnamed, with first card)
+        # Note: first_end is null for internal relations (implicit from containing class)
 
-                             # 1: @stereotype -- relationNome -- [1] TargetClass
-                             # 2: @stereotype [1] <>-- relationNome -- [1..*] TargetClass
-
-        if len(p) == 7:                     # Formato sem cardinalidade inicial
+        if len(p) == 8:      # Format 2: named with first cardinality
             p[0] = {
                 'node_type': 'internal_relation',
                 'relation_stereotype': p[1],
-                'first_cardinality': None,
-                'operator_left': p[2],
-                'relation_name': p[3],
-                'operator_right': p[4],
-                'second_cardinality': p[5],
-                'target_class': p[6]
-            }
-        else:                               # Formato com cardinalidade inicial
-            p[0] = {
-                'node_type': 'internal_relation',
-                'relation_stereotype': p[1],
+                'first_end': None,
                 'first_cardinality': p[2],
                 'operator_left': p[3],
                 'relation_name': p[4],
                 'operator_right': p[5],
                 'second_cardinality': p[6],
-                'target_class': p[7]
+                'second_end': p[7]
+            }
+        elif len(p) == 7:    # Format 1: named without first cardinality
+            p[0] = {
+                'node_type': 'internal_relation',
+                'relation_stereotype': p[1],
+                'first_end': None,
+                'first_cardinality': None,
+                'operator_left': p[2],
+                'relation_name': p[3],
+                'operator_right': p[4],
+                'second_cardinality': p[5],
+                'second_end': p[6]
+            }
+        elif len(p) == 6:    # Format 4: unnamed with first cardinality
+            p[0] = {
+                'node_type': 'internal_relation',
+                'relation_stereotype': p[1],
+                'first_end': None,
+                'first_cardinality': p[2],
+                'operator_left': p[3],
+                'relation_name': None,
+                'operator_right': None,
+                'second_cardinality': p[4],
+                'second_end': p[5]
+            }
+        else:                # len(p) == 5, Format 3: unnamed without first cardinality
+            p[0] = {
+                'node_type': 'internal_relation',
+                'relation_stereotype': p[1],
+                'first_end': None,
+                'first_cardinality': None,
+                'operator_left': p[2],
+                'relation_name': None,
+                'operator_right': None,
+                'second_cardinality': p[3],
+                'second_end': p[4]
             }
     
     def p_relation_stereotype_optional(self, p):
@@ -231,8 +263,26 @@ class MyParser:
                                | RELATION_MEDIATION
                                | RELATION_CHARACTERIZATION
                                | RELATION_EXTERNALDEPENDENCE
+                               | RELATION_COMPONENTOF
+                               | RELATION_MEMBEROF
+                               | RELATION_SUBCOLLECTIONOF
+                               | RELATION_SUBQUALITYOF
+                               | RELATION_INSTANTIATION
+                               | RELATION_TERMINATION
+                               | RELATION_PARTICIPATIONAL
+                               | RELATION_PARTICIPATION
+                               | RELATION_HISTORICALDEPENDENCE
+                               | RELATION_CREATION
+                               | RELATION_MANIFESTATION
+                               | RELATION_BRINGSABOUT
+                               | RELATION_TRIGGERS
+                               | RELATION_COMPOSITION
+                               | RELATION_AGGREGATION
+                               | RELATION_INHERENCE
+                               | RELATION_VALUE
+                               | RELATION_FORMAL
+                               | RELATION_CONSTITUTION
                                '''
-                               #TODO Adicionar outros estereótipos de relação do @TokenType.py!!!!
         p[0] = p[1]
 
     def p_relation_operator_left(self, p):
@@ -519,9 +569,44 @@ class MyParser:
                 'categorizer': p[4],
                 'specifics': p[6]
             }
-    
 
 
+# ======================================= EXTERNAL RELATION ======================================= #
+# Relações externas definidas no nível do pacote (fora de classes)
+
+    def p_external_relation(self, p):
+        '''external_relation : relation_stereotype_optional KEYWORD_RELATION IDENTIFIER cardinality relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER
+                             | relation_stereotype_optional KEYWORD_RELATION IDENTIFIER relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER'''
+
+        # Format 1: @material relation Atendente [1..*] -- anota -- [1..*] Lista_de_Itens  (len=10, with first card)
+        #           p[1]      p[2]     p[3]      p[4]   p[5] p[6] p[7] p[8]  p[9]
+        # Format 2: @material relation Atendente -- anota -- [1..*] Lista_de_Itens         (len=9, no first card)
+        #           p[1]      p[2]     p[3]      p[4] p[5] p[6] p[7]  p[8]
+
+        if len(p) == 10:    # Format 1: with first cardinality
+            p[0] = {
+                'node_type': 'external_relation',
+                'relation_stereotype': p[1],
+                'first_end': p[3],
+                'first_cardinality': p[4],
+                'operator_left': p[5],
+                'relation_name': p[6],
+                'operator_right': p[7],
+                'second_cardinality': p[8],
+                'second_end': p[9]
+            }
+        else:               # Format 2: without first cardinality (len=9)
+            p[0] = {
+                'node_type': 'external_relation',
+                'relation_stereotype': p[1],
+                'first_end': p[3],
+                'first_cardinality': None,
+                'operator_left': p[4],
+                'relation_name': p[5],
+                'operator_right': p[6],
+                'second_cardinality': p[7],
+                'second_end': p[8]
+            }
 
 # ======================================= GENERIC RULES ======================================= #
 

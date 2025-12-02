@@ -1,0 +1,18 @@
+.code-editor {
+  flex: 1;
+  overflow: hidden;
+}
+
+.code-editor .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.code-editor .cm-scroller {
+  overflow: auto;
+}
+
+/* Ensure proper focus styles */
+.code-editor .cm-editor.cm-focused {
+  outline: none;
+}

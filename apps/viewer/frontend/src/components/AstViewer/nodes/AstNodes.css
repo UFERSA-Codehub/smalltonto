@@ -1,0 +1,370 @@
+/* AST Node Styles */
+
+.ast-node {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  min-width: 180px;
+  max-width: 280px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.ast-node--selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 59, 130, 246), 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ast-node:hover {
+  border-color: var(--color-border-hover);
+}
+
+/* Handles */
+.ast-node__handle {
+  width: 8px;
+  height: 8px;
+  background: var(--color-border);
+  border: 2px solid var(--color-surface);
+}
+
+.ast-node__handle:hover {
+  background: var(--color-primary);
+}
+
+/* Header */
+.ast-node__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-secondary);
+  border-radius: 5px 5px 0 0;
+}
+
+.ast-node__header--package {
+  background: var(--color-primary);
+  color: white;
+  border-bottom: none;
+  border-radius: 5px;
+}
+
+.ast-node__icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ast-node__title {
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ast-node__header--package .ast-node__title,
+.ast-node__header--package .ast-node__icon {
+  color: white;
+  opacity: 1;
+}
+
+/* Stereotype Badges */
+.ast-node__stereotype {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: lowercase;
+  flex-shrink: 0;
+}
+
+/* Class stereotypes - OntoUML colors */
+.ast-node__stereotype--kind {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ast-node__stereotype--subkind {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.ast-node__stereotype--role {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ast-node__stereotype--phase {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.ast-node__stereotype--relator {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ast-node__stereotype--category {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.ast-node__stereotype--mixin {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.ast-node__stereotype--rolemixin {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.ast-node__stereotype--phasemixin {
+  background: #fce7f3;
+  color: #831843;
+}
+
+.ast-node__stereotype--collective {
+  background: #cffafe;
+  color: #0e7490;
+}
+
+.ast-node__stereotype--quantity {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.ast-node__stereotype--quality,
+.ast-node__stereotype--mode,
+.ast-node__stereotype--intrisicmode,
+.ast-node__stereotype--extrinsicmode {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.ast-node__stereotype--event {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.ast-node__stereotype--situation {
+  background: #ddd6fe;
+  color: #5b21b6;
+}
+
+.ast-node__stereotype--process {
+  background: #fbcfe8;
+  color: #9d174d;
+}
+
+.ast-node__stereotype--historicalrole,
+.ast-node__stereotype--historicalrolemixin {
+  background: #fde68a;
+  color: #78350f;
+}
+
+/* Datatype and Enum stereotypes */
+.ast-node__stereotype--datatype {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ast-node__stereotype--enum {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Specialization line */
+.ast-node__specialization {
+  padding: 4px 10px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Sections */
+.ast-node__section {
+  padding: 6px 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.ast-node__section:first-of-type {
+  border-top: none;
+}
+
+.ast-node__section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+/* Lists */
+.ast-node__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Attributes */
+.ast-node__attribute {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.ast-node__attr-name {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.ast-node__attr-type {
+  color: var(--color-text-secondary);
+}
+
+.ast-node__attr-card {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+/* Relations */
+.ast-node__relation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 11px;
+}
+
+.ast-node__rel-stereotype {
+  font-size: 9px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.ast-node__rel-name {
+  color: var(--color-text);
+}
+
+.ast-node__rel-arrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.ast-node__rel-target {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.ast-node__rel-card {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+/* Enum Values */
+.ast-node__enum-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ast-node__enum-value {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--color-text);
+}
+
+/* Genset Badges */
+.ast-node__badges {
+  display: flex;
+  gap: 4px;
+  padding: 4px 10px;
+}
+
+.ast-node__badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.ast-node__badge--disjoint {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ast-node__badge--complete {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Genset Info */
+.ast-node__genset-info {
+  font-size: 11px;
+}
+
+.ast-node__genset-row {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.ast-node__genset-label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.ast-node__genset-value {
+  color: var(--color-text);
+}
+
+/* Package imports */
+.ast-node__imports {
+  padding: 4px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ast-node__import {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-background);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Node type variations */
+.ast-node--package {
+  min-width: 120px;
+}
+
+.ast-node--package .ast-node__header {
+  border-radius: 5px;
+}
+
+.ast-node--class {
+  border-left: 3px solid #3b82f6;
+}
+
+.ast-node--datatype {
+  border-left: 3px solid #8b5cf6;
+}
+
+.ast-node--enum {
+  border-left: 3px solid #10b981;
+}
+
+.ast-node--genset {
+  border-left: 3px solid #f59e0b;
+}

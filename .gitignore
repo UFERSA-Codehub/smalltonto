@@ -4,7 +4,6 @@
 # pyinstaller stuff
 build
 dist
-*.spec
 
 *cache*
 
@@ -12,6 +11,7 @@ dist
 node_modules
 
 # others
+*.tonto
 *.exe
 *.tonto
 
