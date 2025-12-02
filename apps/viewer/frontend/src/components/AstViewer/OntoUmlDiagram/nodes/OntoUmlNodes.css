@@ -1,0 +1,159 @@
+/* OntoUML Node Base Styles */
+.ontouml-node {
+  min-width: 120px;
+  max-width: 250px;
+  border: 2px solid #333;
+  border-radius: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.15);
+  background: white;
+}
+
+.ontouml-node--selected {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.3), 2px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Node Header - Stereotype + Name */
+.ontouml-node__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.ontouml-node__header:last-child {
+  border-bottom: none;
+}
+
+.ontouml-node__stereotype {
+  font-size: 11px;
+  font-style: italic;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+.ontouml-node__name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #000;
+}
+
+/* Attributes Section */
+.ontouml-node__attributes {
+  padding: 6px 10px;
+  border-bottom: 1px solid #333;
+  text-align: left;
+}
+
+.ontouml-node__attributes:last-child {
+  border-bottom: none;
+}
+
+.ontouml-node__attribute {
+  font-size: 11px;
+  color: #333;
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ontouml-node__cardinality {
+  color: #666;
+  margin-left: 4px;
+}
+
+/* Enum Values Section */
+.ontouml-node__enum-values {
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.ontouml-node__enum-value {
+  font-size: 11px;
+  color: #333;
+  padding: 2px 0;
+}
+
+/* Handle Styles - Make them invisible but functional */
+.ontouml-node__handle {
+  width: 8px;
+  height: 8px;
+  background: #555;
+  border: 2px solid white;
+  opacity: 0;
+}
+
+.ontouml-node:hover .ontouml-node__handle {
+  opacity: 0.5;
+}
+
+.ontouml-node__handle:hover {
+  opacity: 1;
+}
+
+/* Specific Node Type Adjustments */
+.ontouml-node--class {
+  /* Classes use stereotype-based background set via inline style */
+}
+
+.ontouml-node--datatype {
+  /* Datatypes use light yellow background */
+}
+
+.ontouml-node--enum {
+  /* Enums use light gray background */
+}
+
+/* Ghost Node - External/Imported Classes */
+.ontouml-node--ghost {
+  background: #f8f8f8;
+  border: 2px dashed #999;
+  opacity: 0.85;
+}
+
+.ontouml-node--ghost:hover {
+  opacity: 1;
+  border-color: #666;
+  cursor: pointer;
+}
+
+.ontouml-node--ghost .ontouml-node__header {
+  border-bottom: none;
+}
+
+.ontouml-node__stereotype--external {
+  color: #888;
+  font-size: 10px;
+}
+
+.ontouml-node__source-module {
+  font-size: 9px;
+  color: #999;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .ontouml-node {
+    border-color: #666;
+  }
+  
+  .ontouml-node__stereotype {
+    color: #888;
+  }
+  
+  .ontouml-node__name {
+    color: #222;
+  }
+  
+  .ontouml-node__attribute,
+  .ontouml-node__enum-value {
+    color: #444;
+  }
+}

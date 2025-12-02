@@ -1,8 +1,6 @@
-import { ReactFlowProvider } from "@xyflow/react";
 import AppShell, { useApp } from "./components/AppShell";
 import EditorArea from "./components/Editor/EditorArea";
-import AstDiagram from "./components/AstViewer/AstDiagram";
-import SummaryPanel from "./components/AstViewer/SummaryPanel";
+import AstViewer from "./components/AstViewer/AstViewer";
 import ErrorList from "./components/Editor/ErrorList";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import "./App.css";
@@ -118,13 +116,10 @@ function MainContent() {
     );
   }
 
-  // Render AST Diagram with Summary Panel
+  // Render AST Viewer (OntoUML diagram or AST Hierarchy with Summary Panel)
   return (
     <div className="main-content main-content--ast">
-      <ReactFlowProvider>
-        <AstDiagram ast={parseResult.ast} />
-        <SummaryPanel ast={parseResult.ast} />
-      </ReactFlowProvider>
+      <AstViewer ast={parseResult.ast} />
     </div>
   );
 }

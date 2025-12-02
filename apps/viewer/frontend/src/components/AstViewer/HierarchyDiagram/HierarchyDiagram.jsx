@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo, useEffect, useState, useRef } from "react";
 import {
   ReactFlow,
   Controls,
@@ -14,8 +14,8 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "./nodes/AstNodes";
 import { transformAstToFlow } from "./utils/astToFlow";
 import { useAutoLayout } from "./utils/useAutoLayout";
-import { useApp } from "../AppShell";
-import "./AstDiagram.css";
+import DetailPanel from "../DetailPanel/DetailPanel";
+import "./HierarchyDiagram.css";
 
 // Custom edge styles
 const edgeTypes = {};
@@ -113,11 +113,16 @@ function getEdgeStyle(edge) {
   }
 }
 
-function AstDiagramInner({ ast, selectedNodeId, onNodeSelect }) {
+function HierarchyDiagramInner({ ast, selectedNodeId, onNodeSelect }) {
   const { fitView, setCenter } = useReactFlow();
+  const containerRef = useRef(null);
+  
+  // Detail panel state
+  const [detailNode, setDetailNode] = useState(null);
+  const [detailPosition, setDetailPosition] = useState({ x: 0, y: 0 });
 
   // Transform AST to React Flow format
-  const { nodes: rawNodes, edges: rawEdges, summary } = useMemo(() => {
+  const { nodes: rawNodes, edges: rawEdges } = useMemo(() => {
     return transformAstToFlow(ast);
   }, [ast]);
 
@@ -160,15 +165,39 @@ function AstDiagramInner({ ast, selectedNodeId, onNodeSelect }) {
     }
   }, [selectedNodeId, nodes, setCenter]);
 
-  // Handle node click
+  // Handle node click - show detail panel
   const handleNodeClick = useCallback(
     (event, node) => {
       if (onNodeSelect) {
         onNodeSelect(node.id);
       }
+      
+      // Calculate position for detail panel relative to container
+      if (containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        // Position panel to the right of the click, with some offset
+        const x = event.clientX - containerRect.left + 20;
+        const y = event.clientY - containerRect.top - 50;
+        
+        // Ensure panel doesn't go off-screen
+        const maxX = containerRect.width - 320; // panel width ~300 + margin
+        const maxY = containerRect.height - 400; // panel max height ~500
+        
+        setDetailPosition({
+          x: Math.min(Math.max(20, x), maxX),
+          y: Math.min(Math.max(20, y), maxY),
+        });
+      }
+      
+      setDetailNode(node);
     },
     [onNodeSelect]
   );
+
+  // Close detail panel
+  const handleCloseDetail = useCallback(() => {
+    setDetailNode(null);
+  }, []);
 
   // Update selected state on nodes
   const nodesWithSelection = useMemo(() => {
@@ -179,56 +208,66 @@ function AstDiagramInner({ ast, selectedNodeId, onNodeSelect }) {
   }, [nodes, selectedNodeId]);
 
   return (
-    <ReactFlow
-      nodes={nodesWithSelection}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onNodeClick={handleNodeClick}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      defaultEdgeOptions={defaultEdgeOptions}
-      fitView
-      fitViewOptions={{ padding: 0.2 }}
-      minZoom={0.1}
-      maxZoom={2}
-      nodesDraggable={true}
-      nodesConnectable={false}
-      elementsSelectable={true}
-      proOptions={{ hideAttribution: true }}
-    >
-      <Controls showInteractive={false} />
-      <MiniMap
-        nodeColor={(node) => {
-          switch (node.type) {
-            case "package":
-              return "#3b82f6";
-            case "class":
-              return "#60a5fa";
-            case "datatype":
-              return "#8b5cf6";
-            case "enum":
-              return "#10b981";
-            case "genset":
-              return "#f59e0b";
-            default:
-              return "#9ca3af";
-          }
-        }}
-        maskColor="rgba(0, 0, 0, 0.1)"
-        style={{ backgroundColor: "var(--color-background-secondary)" }}
-      />
-      <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
-    </ReactFlow>
+    <div ref={containerRef} style={{ width: "100%", height: "100%", position: "relative" }}>
+      <ReactFlow
+        nodes={nodesWithSelection}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handleCloseDetail}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.1}
+        maxZoom={2}
+        nodesDraggable={true}
+        nodesConnectable={false}
+        elementsSelectable={true}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Controls showInteractive={false} />
+        <MiniMap
+          nodeColor={(node) => {
+            switch (node.type) {
+              case "package":
+                return "#3b82f6";
+              case "class":
+                return "#60a5fa";
+              case "datatype":
+                return "#8b5cf6";
+              case "enum":
+                return "#10b981";
+              case "genset":
+                return "#f59e0b";
+              default:
+                return "#9ca3af";
+            }
+          }}
+          maskColor="rgba(0, 0, 0, 0.1)"
+          style={{ backgroundColor: "var(--color-background-secondary)" }}
+        />
+        <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
+      </ReactFlow>
+      
+      {/* Floating Detail Panel */}
+      {detailNode && (
+        <DetailPanel
+          node={detailNode}
+          position={detailPosition}
+          onClose={handleCloseDetail}
+        />
+      )}
+    </div>
   );
 }
 
-export default function AstDiagram({ ast }) {
-  const { selectedAstNode, setSelectedAstNode } = useApp();
-
+export default function HierarchyDiagram({ ast, selectedNodeId, onNodeSelect }) {
   return (
-    <div className="ast-diagram">
-      <AstDiagramInner ast={ast} selectedNodeId={selectedAstNode} onNodeSelect={setSelectedAstNode} />
+    <div className="hierarchy-diagram">
+      <HierarchyDiagramInner ast={ast} selectedNodeId={selectedNodeId} onNodeSelect={onNodeSelect} />
     </div>
   );
 }

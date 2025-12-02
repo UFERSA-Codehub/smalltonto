@@ -266,6 +266,25 @@
   border-radius: 2px;
 }
 
+/* Relation stereotype badge */
+.summary-item__stereotype--relation {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Relation ends display */
+.summary-item__relation-ends {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary-item--selected .summary-item__relation-ends {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Statistics */
 .summary-panel__stats {
   padding: 12px;

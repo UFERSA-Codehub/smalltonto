@@ -1,0 +1,224 @@
+/* AST Tree View Styles */
+
+.ast-tree-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  overflow: hidden;
+}
+
+.ast-tree-view--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+.ast-tree-view__content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  font-family: "SF Mono", "Consolas", "Monaco", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Tree Node */
+.ast-tree-node {
+  user-select: none;
+}
+
+.ast-tree-node__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  padding-left: calc(var(--depth, 0) * 16px + 6px);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.ast-tree-node__row:hover {
+  background: var(--color-surface-hover);
+}
+
+.ast-tree-node__row--selected {
+  background: var(--color-primary);
+  color: white;
+}
+
+.ast-tree-node__row--selected:hover {
+  background: var(--color-primary);
+}
+
+.ast-tree-node__row--expandable {
+  cursor: pointer;
+}
+
+/* Toggle icon */
+.ast-tree-node__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.ast-tree-node__row--selected .ast-tree-node__toggle {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.ast-tree-node__toggle-placeholder {
+  width: 14px;
+}
+
+/* Property name */
+.ast-tree-node__name {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.ast-tree-node__row--selected .ast-tree-node__name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Node type badge */
+.ast-tree-node__badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: lowercase;
+  flex-shrink: 0;
+}
+
+.ast-tree-node__badge--file {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ast-tree-node__badge--package {
+  background: #3b82f6;
+  color: white;
+}
+
+.ast-tree-node__badge--import {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.ast-tree-node__badge--class {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ast-tree-node__badge--datatype {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.ast-tree-node__badge--enum {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ast-tree-node__badge--genset {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ast-tree-node__badge--relation {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ast-tree-node__badge--attribute {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.ast-tree-node__badge--cardinality {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.ast-tree-node__badge--specialization {
+  background: #cffafe;
+  color: #0e7490;
+}
+
+.ast-tree-node__badge--default {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.ast-tree-node__row--selected .ast-tree-node__badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Value preview */
+.ast-tree-node__preview {
+  color: var(--color-text-muted);
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.ast-tree-node__preview--string {
+  color: #059669;
+}
+
+.ast-tree-node__preview--number {
+  color: #d97706;
+}
+
+.ast-tree-node__preview--boolean {
+  color: #7c3aed;
+}
+
+.ast-tree-node__preview--null,
+.ast-tree-node__preview--undefined {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.ast-tree-node__preview--array,
+.ast-tree-node__preview--object {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.ast-tree-node__row--selected .ast-tree-node__preview {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Children container */
+.ast-tree-node__children {
+  /* Children indentation handled by padding-left in row */
+}
+
+/* Scrollbar styling */
+.ast-tree-view__content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ast-tree-view__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ast-tree-view__content::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.ast-tree-view__content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}

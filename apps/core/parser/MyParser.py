@@ -193,13 +193,13 @@ class MyParser:
                              | relation_stereotype_optional relation_operator_left cardinality IDENTIFIER
                              | relation_stereotype_optional cardinality relation_operator_left cardinality IDENTIFIER'''
                         
-        # Format 1: @stereotype -- relationName -- [1] SecondEnd          (len=7, named, no first card)
-        # Format 2: @stereotype [1] -- relationName -- [1..*] SecondEnd   (len=8, named, with first card)
-        # Format 3: @stereotype -- [1] SecondEnd                          (len=5, unnamed, no first card)
-        # Format 4: @stereotype [1..*] -- [1] SecondEnd                   (len=6, unnamed, with first card)
-        # Note: first_end is null for internal relations (implicit from containing class)
+        # Formato 1: @stereotype -- relationName -- [1] SecondEnd          (len=7, nomeada, sem card. inicial)
+        # Formato 2: @stereotype [1] -- relationName -- [1..*] SecondEnd   (len=8, nomeada, com card. inicial)
+        # Formato 3: @stereotype -- [1] SecondEnd                          (len=5, sem nome, sem card. inicial)
+        # Formato 4: @stereotype [1..*] -- [1] SecondEnd                   (len=6, sem nome, com card. inicial)
+        # Nota: first_end é null para relações internas (implícito da classe que contém)
 
-        if len(p) == 8:      # Format 2: named with first cardinality
+        if len(p) == 8:      # Formato 2: nomeada com cardinalidade inicial
             p[0] = {
                 'node_type': 'internal_relation',
                 'relation_stereotype': p[1],
@@ -211,7 +211,7 @@ class MyParser:
                 'second_cardinality': p[6],
                 'second_end': p[7]
             }
-        elif len(p) == 7:    # Format 1: named without first cardinality
+        elif len(p) == 7:    # Formato 1: nomeada sem cardinalidade inicial
             p[0] = {
                 'node_type': 'internal_relation',
                 'relation_stereotype': p[1],
@@ -223,7 +223,7 @@ class MyParser:
                 'second_cardinality': p[5],
                 'second_end': p[6]
             }
-        elif len(p) == 6:    # Format 4: unnamed with first cardinality
+        elif len(p) == 6:    # Formato 4: sem nome com cardinalidade inicial
             p[0] = {
                 'node_type': 'internal_relation',
                 'relation_stereotype': p[1],
@@ -235,7 +235,7 @@ class MyParser:
                 'second_cardinality': p[4],
                 'second_end': p[5]
             }
-        else:                # len(p) == 5, Format 3: unnamed without first cardinality
+        else:                # len(p) == 5, Formato 3: sem nome sem cardinalidade inicial
             p[0] = {
                 'node_type': 'internal_relation',
                 'relation_stereotype': p[1],
@@ -578,12 +578,12 @@ class MyParser:
         '''external_relation : relation_stereotype_optional KEYWORD_RELATION IDENTIFIER cardinality relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER
                              | relation_stereotype_optional KEYWORD_RELATION IDENTIFIER relation_operator_left IDENTIFIER relation_operator_right cardinality IDENTIFIER'''
 
-        # Format 1: @material relation Atendente [1..*] -- anota -- [1..*] Lista_de_Itens  (len=10, with first card)
+        # Formato 1: @material relation Atendente [1..*] -- anota -- [1..*] Lista_de_Itens  (len=10, com card. inicial)
         #           p[1]      p[2]     p[3]      p[4]   p[5] p[6] p[7] p[8]  p[9]
-        # Format 2: @material relation Atendente -- anota -- [1..*] Lista_de_Itens         (len=9, no first card)
+        # Formato 2: @material relation Atendente -- anota -- [1..*] Lista_de_Itens         (len=9, sem card. inicial)
         #           p[1]      p[2]     p[3]      p[4] p[5] p[6] p[7]  p[8]
 
-        if len(p) == 10:    # Format 1: with first cardinality
+        if len(p) == 10:    # Formato 1: com cardinalidade inicial
             p[0] = {
                 'node_type': 'external_relation',
                 'relation_stereotype': p[1],
@@ -595,7 +595,7 @@ class MyParser:
                 'second_cardinality': p[8],
                 'second_end': p[9]
             }
-        else:               # Format 2: without first cardinality (len=9)
+        else:               # Formato 2: sem cardinalidade inicial (len=9)
             p[0] = {
                 'node_type': 'external_relation',
                 'relation_stereotype': p[1],
@@ -630,7 +630,45 @@ class MyParser:
             p[0] = p[1] + [p[3]]            # Múltiplos identificadores
 
 
-# ======================================= ERROR HANDLING ======================================= #
+# ======================================= TRATAMENTO DE ERROS ======================================= #
+
+    # Erros de digitação comuns e suas correções para recomendações contextuais
+    KEYWORD_TYPOS = {
+        'packge': 'package', 'pakage': 'package', 'pacakge': 'package',
+        'imprt': 'import', 'impor': 'import',
+        'knd': 'kind', 'knid': 'kind',
+        'subknd': 'subkind', 'subknid': 'subkind',
+        'specialies': 'specializes', 'specalizes': 'specializes', 'specialzes': 'specializes',
+        'dattype': 'datatype', 'datatyp': 'datatype', 'dataatype': 'datatype',
+        'enun': 'enum', 'enuum': 'enum',
+        'gensett': 'genset', 'gense': 'genset',
+        'disjont': 'disjoint', 'disjoin': 'disjoint',
+        'complet': 'complete', 'complte': 'complete',
+        'reltor': 'relator', 'realtor': 'relator',
+        'matrial': 'material', 'materail': 'material',
+        'medation': 'mediation', 'meidation': 'mediation',
+        'genral': 'general', 'generel': 'general',
+        'specifcs': 'specifics', 'specfics': 'specifics',
+    }
+
+    # Estereótipos de classe válidos para recomendações
+    VALID_STEREOTYPES = [
+        'kind', 'subkind', 'phase', 'role', 'category', 'mixin', 'phaseMixin',
+        'roleMixin', 'historicalRoleMixin', 'collective', 'quantity', 'quality',
+        'mode', 'intrisicMode', 'extrinsicMode', 'event', 'situation', 'process', 'relator'
+    ]
+
+    # Estereótipos de relação válidos para recomendações
+    VALID_RELATION_STEREOTYPES = [
+        'material', 'mediation', 'characterization', 'externalDependence',
+        'componentOf', 'memberOf', 'subCollectionOf', 'subQualityOf',
+        'instantiation', 'termination', 'participational', 'participation',
+        'historicalDependence', 'creation', 'manifestation', 'bringsAbout',
+        'triggers', 'composition', 'aggregation', 'inherence', 'value', 'formal', 'constitution'
+    ]
+
+    # Meta-atributos válidos para recomendações
+    VALID_META_ATTRIBUTES = ['ordered', 'const', 'derived', 'subsets', 'redefines']
 
     def find_column(self, p, token_index):
         """Retorna a coluna do token na linha."""
@@ -657,6 +695,157 @@ class MyParser:
         column = self.find_column(p, token_index)
         return ' ' * (column - 1) + '^'
 
+    def _get_recommendation(self, token_value, token_type, expected):
+        """Gera uma recomendação contextual baseada no contexto do erro."""
+        token_lower = str(token_value).lower() if token_value else ''
+        
+        # Verifica erros de digitação comuns em palavras-chave
+        if token_lower in self.KEYWORD_TYPOS:
+            correct = self.KEYWORD_TYPOS[token_lower]
+            return f"Você quis dizer '{correct}'?"
+        
+        # Verifica se parece um erro de digitação de um estereótipo válido
+        for stereotype in self.VALID_STEREOTYPES:
+            if self._is_similar(token_lower, stereotype.lower()):
+                return f"Estereótipo desconhecido '{token_value}'. Você quis dizer '{stereotype}'?"
+        
+        # Verifica se parece um erro de digitação de um estereótipo de relação válido
+        for rel_stereo in self.VALID_RELATION_STEREOTYPES:
+            if self._is_similar(token_lower, rel_stereo.lower()):
+                return f"Estereótipo de relação desconhecido '{token_value}'. Você quis dizer '{rel_stereo}'?"
+        
+        # Recomendações específicas de contexto baseadas nos tokens esperados
+        if expected:
+            # Nome do pacote faltando
+            if 'IDENTIFIER' in expected and token_type == '{':
+                return "Esperado um nome antes de '{'. Você esqueceu o identificador?"
+            
+            # Chave de fechamento faltando
+            if "'}'" in expected:
+                return "Chave de fechamento '}' faltando. Verifique se todos os blocos estão fechados corretamente."
+            
+            # Chave de abertura faltando
+            if "'{'" in expected:
+                return "Esperado '{' para iniciar o corpo do bloco."
+            
+            # Dois pontos faltando no atributo
+            if "':'" in expected and token_type == 'IDENTIFIER':
+                return "Declaração de atributo requer ':' entre nome e tipo. Exemplo: 'nome: String'"
+            
+            # Palavra-chave specializes faltando
+            if 'KEYWORD_SPECIALIZES' in expected:
+                return "Use a palavra-chave 'specializes' para herança. Exemplo: 'subkind Filho specializes Pai'"
+            
+            # Cardinalidade faltando
+            if "'['" in expected:
+                return "Esperada cardinalidade entre colchetes. Exemplo: '[1..*]' ou '[1]'"
+            
+            # Operador de relação faltando
+            if 'ASSOCIATION' in expected or 'ASSOCIATIONL' in expected:
+                return "Esperado operador de relação: '--', '-->', '<--', '<-->', '<>--', '--<>', '<o>--', ou '--<o>'"
+            
+            # General/specifics faltando no genset
+            if 'KEYWORD_GENERAL' in expected:
+                return "Corpo do genset requer palavra-chave 'general'. Exemplo: 'general ClassePai'"
+            
+            if 'KEYWORD_SPECIFICS' in expected:
+                return "Corpo do genset requer palavra-chave 'specifics'. Exemplo: 'specifics Filho1, Filho2'"
+            
+            # Vírgula faltando
+            if "','" in expected and token_type == 'IDENTIFIER':
+                return "Vírgula faltando entre itens. Use ',' para separar múltiplos valores."
+            
+            # Identificador esperado
+            if 'IDENTIFIER' in expected:
+                return "Esperado um identificador (nome) nesta posição."
+        
+        # Recomendações específicas de tipo de token
+        if token_type == 'NUMBER' and 'IDENTIFIER' in (expected or []):
+            return "Identificadores não podem começar com número. Use uma letra ou underscore."
+        
+        if token_value in self.VALID_STEREOTYPES and 'IDENTIFIER' in (expected or []):
+            return f"'{token_value}' é uma palavra-chave reservada e não pode ser usada como identificador."
+        
+        # Recomendações genéricas baseadas em padrões comuns
+        if token_type == '@':
+            return "Estereótipos de relação usam prefixo '@'. Exemplo: '@material', '@mediation'"
+        
+        if token_type == ':' and 'IDENTIFIER' not in (expected or []):
+            return "':' inesperado. Verifique a sintaxe da declaração de atributo ou tipo."
+        
+        return None
+
+    def _is_similar(self, s1, s2, threshold=2):
+        """Verifica se duas strings são similares (distância de Levenshtein <= threshold)."""
+        if abs(len(s1) - len(s2)) > threshold:
+            return False
+        
+        # Cálculo simples da distância de Levenshtein
+        if len(s1) < len(s2):
+            s1, s2 = s2, s1
+        
+        if len(s2) == 0:
+            return len(s1) <= threshold
+        
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+        
+        return previous_row[-1] <= threshold
+
+    def _format_expected_tokens(self, expected):
+        """Formata tokens esperados em uma mensagem mais legível."""
+        if not expected:
+            return ""
+        
+        # Agrupa tokens por categoria para saída mais limpa
+        keywords = []
+        stereotypes = []
+        operators = []
+        other = []
+        
+        for tok in expected:
+            if tok.startswith('KEYWORD_'):
+                # Converte KEYWORD_PACKAGE para 'package'
+                keywords.append(tok.replace('KEYWORD_', '').lower())
+            elif tok.startswith('CLASS_'):
+                stereotypes.append(tok.replace('CLASS_', '').lower())
+            elif tok.startswith('RELATION_'):
+                stereotypes.append(tok.replace('RELATION_', '').lower())
+            elif tok in ('ASSOCIATION', 'ASSOCIATIONL', 'ASSOCIATIONR', 'ASSOCIATIONLR'):
+                operators.append('--/-->/etc.')
+            elif tok in ('AGGREGATIONL', 'AGGREGATIONR'):
+                operators.append('<>--/--<>')
+            elif tok in ('COMPOSITIONL', 'COMPOSITIONR'):
+                operators.append('<o>--/--<o>')
+            elif tok == 'IDENTIFIER':
+                other.append('identificador')
+            elif tok == 'NUMBER':
+                other.append('número')
+            elif len(tok) <= 3:  # Provavelmente pontuação como '{', '}', ':'
+                other.append(f"'{tok}'")
+            else:
+                other.append(tok.lower())
+        
+        # Remove duplicatas preservando a ordem
+        all_tokens = []
+        seen = set()
+        for token_list in [keywords, stereotypes, list(set(operators)), other]:
+            for t in token_list:
+                if t not in seen:
+                    all_tokens.append(t)
+                    seen.add(t)
+        
+        if len(all_tokens) > 5:
+            return ', '.join(all_tokens[:5]) + f', ... ({len(all_tokens)} opções)'
+        return ', '.join(all_tokens)
+
     def p_error(self, p):
         """Trata erros de sintaxe durante a análise."""
         if p:
@@ -674,10 +863,13 @@ class MyParser:
             line_text = self.lexer.get_error_context(p)
             pointer = self.lexer.format_error_pointer(p)
             
-            error_message = f"Unexpected token '{p.value}' (type: {p.type})"
+            # Obter recomendação contextual
+            recommendation = self._get_recommendation(p.value, p.type, expected)
+            
+            error_message = f"Token inesperado '{p.value}' (tipo: {p.type})"
             if expected:
-                expected_str = ', '.join(expected)
-                error_message += f". Expected one of: {expected_str}"
+                expected_str = self._format_expected_tokens(expected)
+                error_message += f". Esperado: {expected_str}"
             
             error_info = {
                 'type': 'SyntaxError',
@@ -687,9 +879,10 @@ class MyParser:
                 'column': column,
                 'line_text': line_text,
                 'pointer': pointer,
-                'filename': self.filename or '<unknown>',
+                'filename': self.filename or '<desconhecido>',
                 'message': error_message,
-                'expected': expected
+                'expected': expected,
+                'recommendation': recommendation
             }
             
             self.errors.append(error_info)
@@ -703,8 +896,9 @@ class MyParser:
                 'column': 0,
                 'line_text': '',
                 'pointer': '',
-                'filename': self.filename or '<unknown>',
-                'message': 'Unexpected end of file',
-                'expected': []
+                'filename': self.filename or '<desconhecido>',
+                'message': 'Fim de arquivo inesperado. Verifique chaves não fechadas ou declarações incompletas.',
+                'expected': [],
+                'recommendation': "Certifique-se de que todo '{' tem um '}' correspondente e todas as declarações estão completas."
             }
             self.errors.append(error_info)
