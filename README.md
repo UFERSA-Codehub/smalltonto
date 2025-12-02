@@ -33,7 +33,8 @@ detectados e estatísticas de distribuição por categoria.
 
 
 ## Sobre o Projeto 
-No presente repositório estão as implementações avaliativas para a disciplina de Compiladores, separadas por unidade. Cada unidade define a implementação de uma parte de um Compilador de Linguagem de Ontologia Textual (*Textual Ontology Language*, TONTO), limitando-se porém aos analisadores léxico, sintático e semântico, de modo a se adequar ao escopo dessa disciplina.
+No presente repositório estão as implementações avaliativas para a disciplina de Compiladores, separadas por unidade. Cada unidade define a implementação de uma parte de um Compilador de Linguagem de Ontologia Textual (*Textual Ontology Language*, TONTO), limitando-se porém aos analisadores léxico, sintático e semântico, de modo a se adequar ao escopo dessa disciplina. 
+Na fase de análise léxica, criamos um subconjunto da linguagem Tonto com regras específicas de escrita de lexemas para representar classes, relações, instâncias e demais elementos da linguagem. Na fase de análise sintática, teremos de orientar um ontologista a escrever as estruturas que definem cada construto da linguagem de acordo com regras bem definidas de escopo e ordem.
 
 ### Linguagem TONTO - *Textual Ontology Language*
 A TONTO (Textual Ontology Language) é uma linguagem textual para especificação de ontologias computacionais — grafos de conhecimento usados na Web Semântica (Web 3.0). Criada para facilitar o desenvolvimento de ontologias por especialistas de diversas áreas, a TONTO permite gerar automaticamente modelos em formatos como OntoUML, JSON e gUFO (OWL). Possui suporte no VSCode, com ferramentas para modularização, orquestração de dependências e conversão entre formatos.
@@ -48,13 +49,14 @@ O analisador deve reconhecer os seguintes casos:
 - **Estereótipos de classe:** ``event, situation, process, category, mixin, phaseMixin, roleMixin, historicalRoleMixin, kind, collective, quantity, quality, mode, intrisicMode, extrinsicMode, subkind, phase, role, historicalRole.`` 
 - **Estereótipos de relações:** ``material, derivation, comparative, mediation, characterization, externalDependence, subCollectionOf, subQualityOf, componentOf, instantiation, memberOf, termination, participational, participation, historicalDependence, creation, manifestation, bringsAbout, triggers, composition, aggregation, inherence, value, formal, constitution``. 
 - **Palavras reservadas:** ``genset, disjoint, complete, general, specifics, where, package, import, functional-complexes.`` 
-- **Símbolos especiais:** “{“, “}”, “(“, “)”, “\[“, “\]”, “..”, “<>--” , “--<>”, “*”, “@”, “:”. 
+- **Símbolos especiais:** “{“, “}”, “(“, “)”, “[“, “]”, “..”, “<>--” , “--<>”, “*”, “@”, “:”. 
 - **Convenção para nomes de classes:** iniciando com letra maiúscula, seguida por qualquer combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. Exemplos: *Person, Child, Church, University, Second_Baptist_Church.*
 - **Convenção para nomes de relações:** começando com letra minúscula, seguida por qualquer combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. Exemplos: *has, hasParent, has_parent, isPartOf, is_part_of.* 
 - **Convenção para nomes de instâncias:** iniciando com qualquer letra, podendo ter o sublinhado como subcadeia própria e terminando com algum número inteiro. Exemplos: *Planeta1, Planeta2, pizza03, pizza123.* 
 - **Tipos de dados nativos:** ``number, string, boolean, date, time, datetime.`` 
 - **Novos tipos:** iniciando com letra, sem números, sem sublinhado e terminando com a subcadeia “DataType”. Exemplo: *CPFDataType, PhoneNumberDataType.* 
 - **Meta-atributos:** ``ordered, const, derived, subsets, redefines.``
+
 ### Requisitos
 O trabalho deverá ser elaborado e avaliado de acordo com os seguintes critérios:
 - O projeto será parcialmente automatizado com o uso da ferramenta LEX e suas variações: FLEX e PLY. A implementação deverá ser feita em C++ ou Python. 
@@ -134,6 +136,105 @@ and is not trusted on your system. Only run scripts from trusted publishers.
 
 <p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
 
+## Unidade 2: Analisador Sintático
+
+### Problema
+Projetar um analisador sintático para a linguagem TONTO para verificação da corretude da especificação textual de uma ontologia nos seguintes casos:
+1. **Declaração de pacotes**: uma especificação Tonto é dividida em pacotes. Cada pacote define uma “visão” de uma ontologia. Vários pacotes ou visões compõem uma ontologia completa. Pacotes 
+funcionam como *namespaces* ou contêineres lógicos de classes, seus respectivos atributos e 
+relações. Cada modelo em Tonto precisa começar com a declaração de um pacote, conforme o 
+exemplo: 
+```
+package myPackage
+```
+
+2. **Declaração de classes**: Uma classe é declarada com um estereótipo de classe em OntoUML (e.g., **kind**, **subkind**, **role**, **phase** etc.) seguida de seu nome conforme regras definidas no analisador léxico. A declaração de uma classe pode conter atributos próprios. No exemplo abaixo, temos os atributos **name** e **birthdate**, cujos tipos específicos deverão ser tratados por outro conjunto de regras de produção da gramática do analisador sintático. Uma vez que a classe é declarada, poderá ser usada na modelagem de relações. Uma classe pode conter ainda declarações internas de relações, conforme exemplo posterior. 
+```
+kind Person {
+  name: string
+  brithDate: date {const}
+
+  phase Child specializes Person
+}
+```
+
+3. **Declaração de tipos de dados**: Tonto contém seis tipos de dados nativos (***number***, ***string***, ***boolean***, ***date***, ***time*** e ***datetime***). É possível construir ou derivar outros tipos mais complexos a partir desses tipos básicos. No exemplo abaixo, temos um novo tipo de dado para representar um endereço (**Address**), o qual contém seus próprios atributos, cada um formatado de acordo com um tipo nativo de Tonto.
+```
+datatype Address {
+  street: string
+  number: int
+}
+```
+
+4. **Declaração de classes enumeradas**: Certas classes podem ser criadas com um tipo finito e pré
+definido de instâncias. Essas são as chamadas classes enumeradas (**enumerated classes**). 
+Exemplos de classes enumeradas incluem: dias da semana, planetas de um sistema planetário ou 
+o menu de um restaurante. No exemplo abaixo, temos uma classe enumerada nomeada como **EyeColor**, a qual contém apenas quatro instâncias (ou indivíduos). A declaração da classe é precedida pela palavra reservada **enum**. Note que o analisador léxico construído nesta disciplina previa uma regra diferente para a nomeação de indivíduos, cujos nomes deveriam terminar com um número. 
+```
+enum EyeColor { Blue, Green, Brown, Black }
+```
+
+5. **Generalizações (*Generalization sets*)**: Ontologias são vocabulários construídos com base em 
+taxonomias, i.e., árvores de conceitos unidos por relações de herança. Conceitos do topo da árvore 
+são mais abstratos, enquanto os conceitos mais próximos da base são mais concretos. As taxonomias também podem ser organizadas em grupos de generalizações, visto que cada conceito pode derivar múltiplas taxonomias, cada uma segundo um aspecto. 
+No exemplo abaixo, vemos duas formas de se declarar uma generalização em Tonto. Na primeira linha, temos um conjunto de generalização denominado **PersonAgeGroup**, o qual é declarado como tal pela palavra reservada **genset**. Nesta pequena taxonomia, há uma classe-mãe denominada Person e duas classes filhas, denominadas **Child** e **Adult**, respectivamente. Neste caso, devemos considerar que as três classes já foram declaradas anteriormente no código, mas aqui, especificamente, estão sendo agrupadas em uma pequena taxonomia de generalização. As palavras reservadas **disjoint** e complete que antecedem a palavra **genset** denotam que a taxonomia é completa (ou seja, a classe **Adult** nesta classificação de pessoa por idade só tem duas filhas: **Child** e **Adult**) e disjunta (ou seja, as subclasses **Child** e **Adult** não compartilham indivíduos – sua interseção é o vazio). 
+Note que a palavra reservada **where** reforça a estrutura. Uma outra forma de declarar a mesma estrutura é abrindo uma outra estrutura limitada por chaves e declarando a classe-mãe com a palavra reservada general, e as respectivas classes filhas com a palavra reservada **specifics**. Nesse mesmo caso, é possível acrescentar restrições de disjunção ou completude (e.g. ***disjoint***, ***overlapping***, ***complete*** ou ***incomplete***). 
+```
+disjoint complete genset PersonAgeGroup where Child, Adult specializes Person 
+
+genset PersonAgeGroup {
+  general Person
+  specifics Child, Adult
+}
+```
+
+6. **Declarações de relações**: Em Tonto, uma relação pode ser declarada interna ou externamente a uma classe. No exemplo abaixo, a classe **University** (estereotipada com a palavra ***kind***) contém uma declaração interna de relação. 
+Neste exemplo, a relação não tem nome, mas aparece apenas com seu estereótipo (**componentOf**) e seus elementos básicos (cardinalidade e a simbologia gráfica de agregação <>--). Há também a classe que representa a imagem da relação, i.e., **Department**. O domínio da relação é a própria classe University. Na segunda parte do exemplo, uma relação é declarada fora do escopo de qualquer classe. Neste caso, a relação é estereotipada por **@mediation** e denotada pela palavra reservada **relation**. Note que a relação não tem um rótulo ou nome específico. Ainda assim, a declaração está completa por definir o domínio da relação (i.e., **EmploymentContract**) e a imagem da relação (i.e., **Employee**). A declaração é completada pelas cardinalidades e pelo símbolo especial --.
+```
+// Internal relation
+kind University {
+  @componentOf [1] <>-- [1..*] Department
+}
+
+// External relation
+@mediation relation EmploymentContract [1..*] -- [1] Employee
+```
+
+<p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
+
+### Requisitos
+O trabalho deverá ser elaborado e avaliado de acordo com os seguintes critérios: 
+
+- O projeto será parcialmente automatizado com o uso da ferramenta BISON e suas aplicações em C++ ou Python Lembrem-se de que esse framework opera com base em análise ascendente. 
+- Testes estarão disponíveis em: https://github.com/patricioalencar/Compiladores_UFERSA. 
+- Os trabalhos deverão estar no GitHub, com documentação apropriada. 
+- A saída da análise sintática deverá compreender duas visualizações: (1) tabela de síntese contendo um resumo dos construtos encontrados (e.g.: quantos e quais pacotes, quais classes estão em cada pacote, quais relações estão em cada classe e quais são externas, quantas e quais declarações de tipos etc.; e (2) relatório de erros da ontologia,com sugestões de tratamento. 
+- O vídeo explicativo de 05 (cinco) minutos continua obrigatório.
+
+### Implementação
+Para fazer uso dos algoritmos implementados, as mesmas orientações do trabalho da unidade 1 podem ser aplicadas para este.
+
+
+#### MyParser
+O arquivo que representa o analisador sintático está no caminho ```apps/core/parser```, a partir da raiz do projeto, sob o nome de ```MyParser.py```. Nesse arquivo, há uma grande classe MyParser que define, além das regras de produção da linguagem TONTO, as definições de erro que o analisador deve identificar. (TODO: add main.py)
+
+#### Viewer
+Para o analisador sintático, foi desenvolvida também, além da classe do analisador, uma interface de uso e verificação de saída, sendo a interface a principal forma de interagir com o analisador para essa unidade. 
+Para isso, foi utilizada a biblioteca ```PyWebView```, um pacote que permite a criação de aplicações multiplataforma tendo Python como backend e tecnologias web para a construção da GUI (*Graphic User Interface*).Também, para a construção do diagrama de análise sintática, foi utilizada a biblioteca de código aberto ReactFlow.
+As implementações da interface podem ser encontradas no caminho ```apps/core/viewer```. Nessa pasta, temos:
+- Diretório ```viewer/api```, 
+- Diretório ```viewer/frontend```, que agrupa os elementos visuais como componentes, páginas, estilos e hooks
+  - Diretório ```frontend/src```,
+  - arquivos de configuração diversos, como ```eslint.config.js, index.html, package-lock.json, package.json, vite.config.js``` e ```viewer.spec```
+- ```viewer/app.py```, 
+
+<p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
+
+---
+### Como executar o trabalho da unidade 2
+blablabla
+
+---
 ## Referências
 1. W3C. (2025). Resource Description Framework – Concepts and Abstract Data Model. Disponível online em: https://www.w3.org/TR/rdf12-concepts/ 
 2. W3C. (2012). Web Ontology Language Conformance (Second Edition). Disponível online em: https://www.w3.org/TR/owl2-conformance/ 
