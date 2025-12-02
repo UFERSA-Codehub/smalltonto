@@ -24,6 +24,9 @@ Examples:
 
 # Define as palavras reservadas da linguagem
 language_keywords = {
+    "categorizer": "KEYWORD_CATEGORIZER",
+    "enum": "KEYWORD_ENUM",
+    "datatype": "KEYWORD_DATATYPE",
     "genset": "KEYWORD_GENSET",
     "disjoint": "KEYWORD_DISJOINT",
     "complete": "KEYWORD_COMPLETE",
@@ -36,6 +39,8 @@ language_keywords = {
     "specializes": "KEYWORD_SPECIALIZES",
     "relator": "KEYWORD_RELATOR",
     "relators": "KEYWORD_RELATORS",
+    "relation": "KEYWORD_RELATION",
+    "inverseOf": "KEYWORD_INVERSEOF",
     # TODO: Adicionar o restante das palavras reservadas!
     # "specializes" // ✅
     # "," //  ✅
@@ -133,7 +138,7 @@ literals = [
     '@',
     ':',
     ',',
-    '-',
+    #'-',
     '<',
     '>'
 ]
@@ -252,17 +257,15 @@ def get_token_category(token_type):
         return "DATA_TYPE"
     elif token_type in meta_attributes.values():
         return "META_ATTRIBUTE"
-    elif token_type in ["CLASS_NAME", "RELATION_NAME", "INSTANCE_NAME"]:
-        return "ID"
     elif token_type == "IDENTIFIER":
-        return "ID"
+        return "IDENTIFIER"
     elif token_type in ["STRING", "NUMBER"]:
         return "LITERAL"
-    elif token_type in ["LBRACE", "RBRACE", "LPAREN", "RPAREN", "LBRACKET", "RBRACKET"]:
+    elif token_type in ["[", "]", "(", ")", "{", "}"]:
         return "DELIMITER"
-    elif token_type in ["COLON", "ASTERISK", "ANNOTATION", "CARDINALITY", "DASH"]:
+    elif token_type in [":", "*", "@", ".", "-"]:
         return "PUNCTUATION"
-    elif token_type in ["COMPOSITIONL", "COMPOSITIONR", "AGGREGATIONL", "AGGREGATIONR"]:
+    elif token_type in ["CARDINALITY", "COMPOSITIONL", "COMPOSITIONR", "AGGREGATIONL", "AGGREGATIONR"]:
         return "RELATION_OPERATOR"
     elif token_type == "NEW_DATATYPE":
         return "NEW_DATATYPE"
