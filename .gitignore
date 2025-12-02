@@ -13,6 +13,7 @@ node_modules
 
 # others
 *.exe
+*.tonto
 
 # Lexer stuff
 lextab.*
