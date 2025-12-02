@@ -137,18 +137,35 @@ class MyLexer:
         t.category = get_token_category(t.type)
         return t
 
+    '''
+    Convenção para nomes de classes: iniciando com letra maiúscula, seguida por qualquer
+    combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. Exemplos:
+    Person, Child, Church, University, Second_Baptist_Church.
+    '''
     # def t_CLASS_NAME(self, t):
     #     r"[A-Z][a-zA-Z_]*"
     #     t.type = reserved.get(t.value, "CLASS_NAME")
     #     t.category = get_token_category(t.type)
     #     return t
 
+
+    '''
+    Convenção para nomes de relações: começando com letra minúscula, seguida por qualquer
+    combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. Exemplos:
+    has, hasParent, has_parent, isPartOf, is_part_of
+    '''
     # def t_RELATION_NAME(self, t):
     #     r"[a-z][a-zA-Z_]*"
     #     t.type = reserved.get(t.value, "RELATION_NAME")
     #     t.category = get_token_category(t.type)
     #     return t
 
+
+    '''
+    Convenção para nomes de instâncias: iniciando com qualquer letra, podendo ter o sublinhado
+    como subcadeia própria e terminando com algum número inteiro. Exemplos: Planeta1, Planeta2,
+    pizza03, pizza123
+    '''
     # def t_INSTANCE_NAME(self, t):
     #     r"[a-zA-Z_]+[0-9]+"
     #     t.category = get_token_category("INSTANCE_NAME")

@@ -168,6 +168,68 @@ export default function SettingsModal({ isOpen, onClose }) {
               </label>
             </div>
           </section>
+
+          <section className="settings-modal__section">
+            <h3 className="settings-modal__section-title">Diagram</h3>
+
+            <div className="settings-modal__option">
+              <div className="settings-modal__option-info">
+                <label className="settings-modal__label">Show external classes</label>
+                <span className="settings-modal__description">
+                  Display imported classes as ghost nodes in the diagram
+                </span>
+              </div>
+              <label className="settings-modal__toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.showExternalClasses}
+                  onChange={(e) => updateSetting("showExternalClasses", e.target.checked)}
+                />
+                <span className="settings-modal__toggle-slider" />
+              </label>
+            </div>
+
+            <div className="settings-modal__option settings-modal__option--column">
+              <div className="settings-modal__option-info">
+                <label className="settings-modal__label">Attribute display</label>
+                <span className="settings-modal__description">
+                  How to display class attributes in the OntoUML diagram
+                </span>
+              </div>
+              <div className="settings-modal__radio-group">
+                <label className="settings-modal__radio">
+                  <input
+                    type="radio"
+                    name="attributeDisplay"
+                    value="shown"
+                    checked={settings.attributeDisplay === "shown"}
+                    onChange={(e) => updateSetting("attributeDisplay", e.target.value)}
+                  />
+                  <span className="settings-modal__radio-label">Always shown</span>
+                </label>
+                <label className="settings-modal__radio">
+                  <input
+                    type="radio"
+                    name="attributeDisplay"
+                    value="collapsible"
+                    checked={settings.attributeDisplay === "collapsible"}
+                    onChange={(e) => updateSetting("attributeDisplay", e.target.value)}
+                  />
+                  <span className="settings-modal__radio-label">Collapsible</span>
+                </label>
+                <label className="settings-modal__radio">
+                  <input
+                    type="radio"
+                    name="attributeDisplay"
+                    value="hover"
+                    checked={settings.attributeDisplay === "hover"}
+                    onChange={(e) => updateSetting("attributeDisplay", e.target.value)}
+                  />
+                  <span className="settings-modal__radio-label">Show on hover</span>
+                </label>
+              </div>
+            </div>
+          </section>
         </div>
 
         <div className="settings-modal__footer">

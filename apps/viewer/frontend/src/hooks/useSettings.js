@@ -8,6 +8,8 @@ export const defaultSettings = {
   autoSaveDelay: 500,
   onCloseUnsaved: "confirm",
   keepTokenHighlight: false,
+  attributeDisplay: "shown", // "shown", "collapsible", "hover"
+  showExternalClasses: true, // Show ghost nodes for imported classes
 };
 
 export function useSettings() {

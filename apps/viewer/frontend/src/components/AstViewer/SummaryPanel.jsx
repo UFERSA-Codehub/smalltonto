@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Package, Box, Database, List, GitBranch, Link, FileText } from "lucide-react";
+import { Package, Box, Database, List, GitBranch, Link, FileText, Import, ArrowRightLeft } from "lucide-react";
 import { useApp } from "../AppShell";
-import { transformAstToFlow, getSummaryStats } from "./utils/astToFlow";
+import { transformAstToFlow, getSummaryStats } from "./HierarchyDiagram/utils/astToFlow";
 import "./SummaryPanel.css";
 
 const MIN_WIDTH = 280;
@@ -100,6 +100,17 @@ export default function SummaryPanel({ ast }) {
           renderItem={(pkg) => pkg.name}
         />
 
+        {/* Imports Section */}
+        <SummarySection
+          icon={<Import size={14} />}
+          title="Imports"
+          count={stats.importCount}
+          items={summary.imports}
+          selectedId={selectedAstNode}
+          onItemClick={handleItemClick}
+          renderItem={(imp) => imp.name}
+        />
+
         {/* Classes Section */}
         <SummarySection
           icon={<Box size={14} />}
@@ -158,12 +169,34 @@ export default function SummaryPanel({ ast }) {
           )}
         />
 
+        {/* External Relations Section */}
+        <SummarySection
+          icon={<ArrowRightLeft size={14} />}
+          title="External Relations"
+          count={stats.externalRelationCount}
+          items={summary.externalRelations}
+          selectedId={selectedAstNode}
+          onItemClick={handleItemClick}
+          renderItem={(rel) => (
+            <>
+              {rel.stereotype && (
+                <span className="summary-item__stereotype summary-item__stereotype--relation">
+                  @{rel.stereotype}
+                </span>
+              )}
+              <span className="summary-item__relation-ends">
+                {rel.firstEnd} {rel.firstCardinality || ""} → {rel.secondCardinality || ""} {rel.secondEnd}
+              </span>
+            </>
+          )}
+        />
+
         {/* Statistics */}
         <div className="summary-panel__stats">
           <div className="summary-panel__stat">
             <Link size={12} />
-            <span>Relations:</span>
-            <strong>{stats.relationCount}</strong>
+            <span>Internal Relations:</span>
+            <strong>{stats.internalRelationCount}</strong>
           </div>
           <div className="summary-panel__stat">
             <FileText size={12} />

@@ -1,0 +1,90 @@
+.ast-viewer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Header with tabs and package name */
+.ast-viewer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 40px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Tab buttons */
+.ast-viewer__tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.ast-viewer__tab {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ast-viewer__tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.ast-viewer__tab--active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg, rgba(59, 130, 246, 0.1));
+}
+
+.ast-viewer__tab--active:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-bg, rgba(59, 130, 246, 0.15));
+}
+
+/* Package name display */
+.ast-viewer__package-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 4px 10px;
+  background: var(--color-background);
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+
+/* Content area with diagram and summary panel */
+.ast-viewer__content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Raw JSON view */
+.ast-viewer__raw-json {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background: var(--color-background);
+}
+
+.ast-viewer__raw-json pre {
+  margin: 0;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

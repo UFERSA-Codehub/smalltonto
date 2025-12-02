@@ -32,6 +32,14 @@ export function transformAstToFlow(ast) {
 
   summary.packages.push({ id: packageId, name: packageName });
 
+  // Add imports to summary
+  (ast.imports || []).forEach((imp) => {
+    summary.imports.push({
+      id: `import-${imp.module_name}`,
+      name: imp.module_name,
+    });
+  });
+
   // Process content (classes, datatypes, enums, gensets)
   const content = ast.content || [];
 
@@ -53,6 +61,7 @@ export function transformAstToFlow(ast) {
 function createEmptySummary() {
   return {
     packages: [],
+    imports: [],
     classes: {
       byStereotype: {},
       list: [],
@@ -60,7 +69,8 @@ function createEmptySummary() {
     datatypes: [],
     enums: [],
     gensets: [],
-    relationCount: 0,
+    externalRelations: [],
+    internalRelationCount: 0,
     attributeCount: 0,
   };
 }
@@ -101,11 +111,11 @@ function processContentItem(item, parentId, index, summary) {
       summary.classes.list.push({ id: nodeId, name: item.class_name, stereotype });
       summary.classes.byStereotype[stereotype] = (summary.classes.byStereotype[stereotype] || 0) + 1;
       summary.attributeCount += attributes.length;
-      summary.relationCount += relations.length;
+      summary.internalRelationCount += relations.length;
 
       // Create edges for internal relations
       relations.forEach((rel, relIndex) => {
-        const targetClassId = `class-${rel.targetClass}`;
+        const targetClassId = `class-${rel.secondEnd}`;
         edges.push({
           id: `${nodeId}->${targetClassId}-rel-${relIndex}`,
           source: nodeId,
@@ -114,7 +124,8 @@ function processContentItem(item, parentId, index, summary) {
           data: {
             name: rel.name,
             stereotype: rel.stereotype,
-            cardinality: rel.cardinality,
+            firstCardinality: rel.firstCardinality,
+            secondCardinality: rel.secondCardinality,
           },
         });
       });
@@ -231,6 +242,43 @@ function processContentItem(item, parentId, index, summary) {
       break;
     }
 
+    case "external_relation": {
+      const relationName = item.relation_name || `${item.first_end}_to_${item.second_end}`;
+      const nodeId = `extrel-${relationName}-${item.first_end}-${item.second_end}`;
+
+      // Add to summary
+      summary.externalRelations.push({
+        id: nodeId,
+        name: relationName,
+        stereotype: item.relation_stereotype,
+        firstEnd: item.first_end,
+        secondEnd: item.second_end,
+        firstCardinality: formatCardinality(item.first_cardinality),
+        secondCardinality: formatCardinality(item.second_cardinality),
+      });
+
+      // Create edge for external relation (from first_end class to second_end class)
+      const sourceId = `class-${item.first_end}`;
+      const targetId = `class-${item.second_end}`;
+
+      edges.push({
+        id: nodeId,
+        source: sourceId,
+        target: targetId,
+        type: "external-relation",
+        data: {
+          name: relationName,
+          stereotype: item.relation_stereotype,
+          firstCardinality: formatCardinality(item.first_cardinality),
+          secondCardinality: formatCardinality(item.second_cardinality),
+          operatorLeft: item.operator_left,
+          operatorRight: item.operator_right,
+        },
+      });
+
+      break;
+    }
+
     default:
       console.warn("Unknown node type:", item.node_type);
   }
@@ -259,8 +307,9 @@ function extractRelations(body) {
     .map((rel) => ({
       name: rel.relation_name,
       stereotype: rel.relation_stereotype,
-      targetClass: rel.target_class,
-      cardinality: formatCardinality(rel.second_cardinality),
+      secondEnd: rel.second_end,
+      firstCardinality: formatCardinality(rel.first_cardinality),
+      secondCardinality: formatCardinality(rel.second_cardinality),
       operatorLeft: rel.operator_left,
       operatorRight: rel.operator_right,
     }));
@@ -304,11 +353,13 @@ function createSpecializationEdges(nodes) {
 export function getSummaryStats(summary) {
   return {
     packageCount: summary.packages.length,
+    importCount: summary.imports.length,
     classCount: summary.classes.list.length,
     datatypeCount: summary.datatypes.length,
     enumCount: summary.enums.length,
     gensetCount: summary.gensets.length,
-    relationCount: summary.relationCount,
+    externalRelationCount: summary.externalRelations.length,
+    internalRelationCount: summary.internalRelationCount,
     attributeCount: summary.attributeCount,
   };
 }

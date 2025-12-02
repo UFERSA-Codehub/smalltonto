@@ -11,6 +11,12 @@
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
+/* Compact mode - reduced width */
+.ast-node--compact {
+  min-width: 100px;
+  max-width: 200px;
+}
+
 .ast-node--selected {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 59, 130, 246), 0.2),
@@ -367,4 +373,58 @@
 
 .ast-node--genset {
   border-left: 3px solid #f59e0b;
+}
+
+/* Compact node counts row */
+.ast-node__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.ast-node__count {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.ast-node__count--spec {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.ast-node__count--attr {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ast-node__count--rel {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ast-node__count--val {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ast-node__count--gen {
+  background: #fef3c7;
+  color: #92400e;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Compact badge styles */
+.ast-node--compact .ast-node__badge {
+  font-size: 9px;
+  padding: 1px 4px;
 }

@@ -1,0 +1,72 @@
+.ontouml-diagram {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: var(--color-background);
+  position: relative;
+}
+
+/* React Flow overrides */
+.ontouml-diagram .react-flow {
+  background: var(--color-background);
+}
+
+.ontouml-diagram .react-flow__controls {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ontouml-diagram .react-flow__controls-button {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  width: 28px;
+  height: 28px;
+}
+
+.ontouml-diagram .react-flow__controls-button:hover {
+  background: var(--color-surface-hover);
+}
+
+.ontouml-diagram .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.ontouml-diagram .react-flow__controls-button svg {
+  fill: var(--color-text);
+}
+
+/* MiniMap */
+.ontouml-diagram .react-flow__minimap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Background */
+.ontouml-diagram .react-flow__background {
+  background-color: var(--color-background);
+}
+
+/* Edge labels */
+.ontouml-diagram .react-flow__edge-textbg {
+  fill: var(--color-surface);
+}
+
+.ontouml-diagram .react-flow__edge-text {
+  fill: var(--color-text-secondary);
+}
+
+/* Selection box */
+.ontouml-diagram .react-flow__selection {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px dashed var(--color-primary);
+}
+
+/* Panel styling */
+.ontouml-diagram .react-flow__panel {
+  margin: 12px;
+}
