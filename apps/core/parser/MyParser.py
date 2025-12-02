@@ -263,8 +263,26 @@ class MyParser:
                                | RELATION_MEDIATION
                                | RELATION_CHARACTERIZATION
                                | RELATION_EXTERNALDEPENDENCE
+                               | RELATION_COMPONENTOF
+                               | RELATION_MEMBEROF
+                               | RELATION_SUBCOLLECTIONOF
+                               | RELATION_SUBQUALITYOF
+                               | RELATION_INSTANTIATION
+                               | RELATION_TERMINATION
+                               | RELATION_PARTICIPATIONAL
+                               | RELATION_PARTICIPATION
+                               | RELATION_HISTORICALDEPENDENCE
+                               | RELATION_CREATION
+                               | RELATION_MANIFESTATION
+                               | RELATION_BRINGSABOUT
+                               | RELATION_TRIGGERS
+                               | RELATION_COMPOSITION
+                               | RELATION_AGGREGATION
+                               | RELATION_INHERENCE
+                               | RELATION_VALUE
+                               | RELATION_FORMAL
+                               | RELATION_CONSTITUTION
                                '''
-                               #TODO Adicionar outros estereótipos de relação do @TokenType.py!!!!
         p[0] = p[1]
 
     def p_relation_operator_left(self, p):
