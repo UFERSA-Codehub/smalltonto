@@ -91,7 +91,7 @@ export default function ErrorList({ errors }) {
   return (
     <div className="error-list">
       {errors.map((error, index) => {
-        const suggestion = getSuggestion(error);
+        const suggestion = error.recommendation || getSuggestion(error);
         return (
           <div
             key={index}

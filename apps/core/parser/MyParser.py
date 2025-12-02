@@ -702,76 +702,76 @@ class MyParser:
         # Verifica erros de digitação comuns em palavras-chave
         if token_lower in self.KEYWORD_TYPOS:
             correct = self.KEYWORD_TYPOS[token_lower]
-            return f"Você quis dizer '{correct}'?"
+            return f"Did you mean '{correct}'?"
         
         # Verifica se parece um erro de digitação de um estereótipo válido
         for stereotype in self.VALID_STEREOTYPES:
             if self._is_similar(token_lower, stereotype.lower()):
-                return f"Estereótipo desconhecido '{token_value}'. Você quis dizer '{stereotype}'?"
+                return f"Unknown stereotype '{token_value}'. Did you mean '{stereotype}'?"
         
         # Verifica se parece um erro de digitação de um estereótipo de relação válido
         for rel_stereo in self.VALID_RELATION_STEREOTYPES:
             if self._is_similar(token_lower, rel_stereo.lower()):
-                return f"Estereótipo de relação desconhecido '{token_value}'. Você quis dizer '{rel_stereo}'?"
+                return f"Unknown relation stereotype '{token_value}'. Did you mean '{rel_stereo}'?"
         
         # Recomendações específicas de contexto baseadas nos tokens esperados
         if expected:
             # Nome do pacote faltando
             if 'IDENTIFIER' in expected and token_type == '{':
-                return "Esperado um nome antes de '{'. Você esqueceu o identificador?"
+                return "Expected a name before '{'. Did you forget the identifier?"
             
             # Chave de fechamento faltando
             if "'}'" in expected:
-                return "Chave de fechamento '}' faltando. Verifique se todos os blocos estão fechados corretamente."
+                return "Missing closing brace '}'. Check that all blocks are properly closed."
             
             # Chave de abertura faltando
             if "'{'" in expected:
-                return "Esperado '{' para iniciar o corpo do bloco."
+                return "Expected '{' to start a block body."
             
             # Dois pontos faltando no atributo
             if "':'" in expected and token_type == 'IDENTIFIER':
-                return "Declaração de atributo requer ':' entre nome e tipo. Exemplo: 'nome: String'"
+                return "Attribute declaration requires ':' between name and type. Example: 'name: String'"
             
             # Palavra-chave specializes faltando
             if 'KEYWORD_SPECIALIZES' in expected:
-                return "Use a palavra-chave 'specializes' para herança. Exemplo: 'subkind Filho specializes Pai'"
+                return "Use 'specializes' keyword for inheritance. Example: 'subkind Child specializes Parent'"
             
             # Cardinalidade faltando
             if "'['" in expected:
-                return "Esperada cardinalidade entre colchetes. Exemplo: '[1..*]' ou '[1]'"
+                return "Expected cardinality in brackets. Example: '[1..*]' or '[1]'"
             
             # Operador de relação faltando
             if 'ASSOCIATION' in expected or 'ASSOCIATIONL' in expected:
-                return "Esperado operador de relação: '--', '-->', '<--', '<-->', '<>--', '--<>', '<o>--', ou '--<o>'"
+                return "Expected relation operator: '--', '-->', '<--', '<-->', '<>--', '--<>', '<o>--', or '--<o>'"
             
             # General/specifics faltando no genset
             if 'KEYWORD_GENERAL' in expected:
-                return "Corpo do genset requer palavra-chave 'general'. Exemplo: 'general ClassePai'"
+                return "Genset body requires 'general' keyword. Example: 'general ParentClass'"
             
             if 'KEYWORD_SPECIFICS' in expected:
-                return "Corpo do genset requer palavra-chave 'specifics'. Exemplo: 'specifics Filho1, Filho2'"
+                return "Genset body requires 'specifics' keyword. Example: 'specifics Child1, Child2'"
             
             # Vírgula faltando
             if "','" in expected and token_type == 'IDENTIFIER':
-                return "Vírgula faltando entre itens. Use ',' para separar múltiplos valores."
+                return "Missing comma between items. Use ',' to separate multiple values."
             
             # Identificador esperado
             if 'IDENTIFIER' in expected:
-                return "Esperado um identificador (nome) nesta posição."
+                return "Expected an identifier (name) at this position."
         
         # Recomendações específicas de tipo de token
         if token_type == 'NUMBER' and 'IDENTIFIER' in (expected or []):
-            return "Identificadores não podem começar com número. Use uma letra ou underscore."
+            return "Identifiers cannot start with a number. Use a letter or underscore."
         
         if token_value in self.VALID_STEREOTYPES and 'IDENTIFIER' in (expected or []):
-            return f"'{token_value}' é uma palavra-chave reservada e não pode ser usada como identificador."
+            return f"'{token_value}' is a reserved keyword and cannot be used as an identifier."
         
         # Recomendações genéricas baseadas em padrões comuns
         if token_type == '@':
-            return "Estereótipos de relação usam prefixo '@'. Exemplo: '@material', '@mediation'"
+            return "Relation stereotypes use '@' prefix. Example: '@material', '@mediation'"
         
         if token_type == ':' and 'IDENTIFIER' not in (expected or []):
-            return "':' inesperado. Verifique a sintaxe da declaração de atributo ou tipo."
+            return "Unexpected ':'. Check attribute or type declaration syntax."
         
         return None
 
@@ -825,9 +825,9 @@ class MyParser:
             elif tok in ('COMPOSITIONL', 'COMPOSITIONR'):
                 operators.append('<o>--/--<o>')
             elif tok == 'IDENTIFIER':
-                other.append('identificador')
+                other.append('identifier')
             elif tok == 'NUMBER':
-                other.append('número')
+                other.append('number')
             elif len(tok) <= 3:  # Provavelmente pontuação como '{', '}', ':'
                 other.append(f"'{tok}'")
             else:
@@ -843,7 +843,7 @@ class MyParser:
                     seen.add(t)
         
         if len(all_tokens) > 5:
-            return ', '.join(all_tokens[:5]) + f', ... ({len(all_tokens)} opções)'
+            return ', '.join(all_tokens[:5]) + f', ... ({len(all_tokens)} options)'
         return ', '.join(all_tokens)
 
     def p_error(self, p):
@@ -866,10 +866,10 @@ class MyParser:
             # Obter recomendação contextual
             recommendation = self._get_recommendation(p.value, p.type, expected)
             
-            error_message = f"Token inesperado '{p.value}' (tipo: {p.type})"
+            error_message = f"Unexpected token '{p.value}' (type: {p.type})"
             if expected:
                 expected_str = self._format_expected_tokens(expected)
-                error_message += f". Esperado: {expected_str}"
+                error_message += f". Expected: {expected_str}"
             
             error_info = {
                 'type': 'SyntaxError',
@@ -879,7 +879,7 @@ class MyParser:
                 'column': column,
                 'line_text': line_text,
                 'pointer': pointer,
-                'filename': self.filename or '<desconhecido>',
+                'filename': self.filename or '<unknown>',
                 'message': error_message,
                 'expected': expected,
                 'recommendation': recommendation
@@ -896,9 +896,9 @@ class MyParser:
                 'column': 0,
                 'line_text': '',
                 'pointer': '',
-                'filename': self.filename or '<desconhecido>',
-                'message': 'Fim de arquivo inesperado. Verifique chaves não fechadas ou declarações incompletas.',
+                'filename': self.filename or '<unknown>',
+                'message': 'Unexpected end of file. Check for unclosed braces or incomplete statements.',
                 'expected': [],
-                'recommendation': "Certifique-se de que todo '{' tem um '}' correspondente e todas as declarações estão completas."
+                'recommendation': "Ensure all '{' have matching '}' and all statements are complete."
             }
             self.errors.append(error_info)
