@@ -222,11 +222,11 @@ O arquivo que representa o analisador sintático está no caminho ```apps/core/p
 Para o analisador sintático, foi desenvolvida também, além da classe do analisador, uma interface de uso e verificação de saída, sendo a interface a principal forma de interagir com o analisador para essa unidade. 
 Para isso, foi utilizada a biblioteca ```PyWebView```, um pacote que permite a criação de aplicações multiplataforma tendo Python como backend e tecnologias web para a construção da GUI (*Graphic User Interface*).Também, para a construção do diagrama de análise sintática, foi utilizada a biblioteca de código aberto ReactFlow.
 As implementações da interface podem ser encontradas no caminho ```apps/core/viewer```. Nessa pasta, temos:
-- Diretório ```viewer/api```, 
+- Diretório ```viewer/api```, centraliza a criação da interface utilizando a biblioteca PyWebView e a criação do Lexer e do Parser para serem criados para a interface;
 - Diretório ```viewer/frontend```, que agrupa os elementos visuais como componentes, páginas, estilos e hooks
-  - Diretório ```frontend/src```,
+  - Diretório ```frontend/src```, onde ficam os componentes, estilos, hooks e páginas da interface web;
   - arquivos de configuração diversos, como ```eslint.config.js, index.html, package-lock.json, package.json, vite.config.js``` e ```viewer.spec```
-- ```viewer/app.py```, 
+- ```viewer/app.py```, onde as telas e as definições da API são unificadas em uma mesma aplicação.
 
 <p align="right">(<a href="#disciplina-compiladores">back to top</a>)</p>
 
