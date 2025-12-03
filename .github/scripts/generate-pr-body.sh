@@ -156,11 +156,11 @@ if [ "$COMMIT_COUNT" -gt 5 ] 2>/dev/null; then
   MORE_COMMITS=$'\n'"_...e mais $(($COMMIT_COUNT - 5)) commits_"
 fi
 
-LAST_UPDATED=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+LAST_UPDATED=$(TZ='America/Sao_Paulo' date +"%Y-%m-%d %H:%M:%S UTC-3")
 
 # Legend table
-LEGEND='| Emoji | Significado |
-|:-----:|-------------|
+LEGEND='| Icon | Significado |
+|:----:|-------------|
 | 🟢 | Novo |
 | 🟡 | Modificado |
 | 🔴 | Removido |'
