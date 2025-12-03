@@ -1,0 +1,169 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Release type (major, minor, patch)'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: 'Custom version (optional, e.g., 1.2.3 - overrides version_type)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate next version
+        id: version
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git tag -l 'v*.*.*' --sort=-v:refname | head -n 1)
+          
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No existing tags found, starting from v0.0.0"
+            LATEST_TAG="v0.0.0"
+          fi
+          
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Parse version numbers
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          
+          # Check if custom version is provided
+          if [ -n "${{ inputs.custom_version }}" ]; then
+            NEW_VERSION="${{ inputs.custom_version }}"
+            # Remove 'v' prefix if provided
+            NEW_VERSION="${NEW_VERSION#v}"
+          else
+            # Increment based on version type
+            case "${{ inputs.version_type }}" in
+              major)
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              minor)
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              patch)
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
+          
+          echo "New version: v$NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check Unreleased section has content
+        id: check-content
+        run: |
+          # Extract content between [Unreleased] and next version header (or end of file)
+          UNRELEASED_CONTENT=$(sed -n '/^## \[Unreleased\]/,/^## \[v/p' CHANGELOG.md | sed '1d;$d' | grep -v '^$' | grep -v '^<!--')
+          
+          if [ -z "$UNRELEASED_CONTENT" ]; then
+            echo "::error::No content in [Unreleased] section. Nothing to release."
+            exit 1
+          fi
+          
+          echo "Unreleased content found:"
+          echo "$UNRELEASED_CONTENT"
+          
+          # Save for release notes (escape for GitHub Actions)
+          {
+            echo "release_notes<<EOF"
+            echo "$UNRELEASED_CONTENT"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE=$(TZ='America/Sao_Paulo' date +%Y-%m-%d)
+          
+          # Create the new version header
+          NEW_HEADER="## [v$VERSION] - $DATE"
+          
+          # Replace [Unreleased] section header with version, and add new [Unreleased]
+          awk -v new_header="$NEW_HEADER" '
+            /^## \[Unreleased\]/ {
+              print "## [Unreleased]"
+              print ""
+              print "<!-- New entries will be added here automatically -->"
+              print ""
+              print new_header
+              next
+            }
+            # Skip the old placeholder comment if it exists
+            /^<!-- New entries will be added here automatically -->/ { next }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+          
+          echo "Updated CHANGELOG.md for version $VERSION"
+          cat CHANGELOG.md
+
+      - name: Commit release changes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add CHANGELOG.md
+          git commit -m "chore(release): v$VERSION [skip ci]"
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          
+          git tag -a "$TAG" -m "Release $TAG"
+          echo "Created tag: $TAG"
+
+      - name: Update release branch
+        run: |
+          # Force update the release branch to point to current HEAD
+          git branch -f release HEAD 2>/dev/null || git checkout -b release
+          git push origin release --force
+          echo "Updated 'release' branch to point to current HEAD"
+
+      - name: Push commits and tags
+        run: |
+          git push origin HEAD
+          git push origin --tags
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Create release notes from changelog section
+          RELEASE_NOTES="${{ steps.check-content.outputs.release_notes }}"
+          
+          gh release create "$TAG" \
+            --title "Release $TAG" \
+            --notes "$RELEASE_NOTES" \
+            --latest
+          
+          echo "✅ Created GitHub Release: $TAG"
+          echo "🔗 https://github.com/${{ github.repository }}/releases/tag/$TAG"
