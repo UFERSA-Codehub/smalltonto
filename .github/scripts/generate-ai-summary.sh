@@ -11,8 +11,11 @@
 # Output:
 #   Writes to GITHUB_OUTPUT:
 #     ai_title - AI-generated PR title
-#     ai_summary - AI-generated summary
-#     ai_tech_notes - AI-generated tech notes
+#     ai_summary - AI-generated summary paragraph
+#     ai_features - AI-generated features section (or "Nenhuma")
+#     ai_fixes - AI-generated fixes section (or "Nenhuma")
+#     ai_docs - AI-generated docs section (or "Nenhuma")
+#     ai_other - AI-generated other changes section (or "Nenhuma")
 #     ai_success - "true" if successful, "false" otherwise
 #
 
@@ -40,13 +43,13 @@ git fetch origin master:master 2>/dev/null || git fetch origin main:master 2>/de
 
 # Collect context for AI
 COMMIT_MESSAGES=$(git log master..HEAD --pretty=format:"%s" 2>/dev/null | head -20 || echo "No commits")
-FILES_CHANGED=$(git diff --name-only master..HEAD 2>/dev/null | head -20 || echo "No files")
+FILES_CHANGED=$(git diff --name-only master..HEAD 2>/dev/null | head -30 || echo "No files")
 DIFF_STAT=$(git diff master..HEAD --stat 2>/dev/null | head -30 || echo "No diff stats")
 
 # Build and escape prompt for JSON
 echo "Building AI prompt..."
 PROMPT=$(printf '%s\n' \
-  "Analyze these git changes and generate a PR summary in Portuguese (pt-BR):" \
+  "Analyze these git changes and generate a PR summary in Portuguese (pt-BR)." \
   "" \
   "Branch: $BRANCH" \
   "" \
@@ -59,16 +62,24 @@ PROMPT=$(printf '%s\n' \
   "Diff stats:" \
   "$DIFF_STAT" \
   "" \
-  "Generate:" \
-  "1. A concise PR title (max 60 chars, in Portuguese, descriptive and human-readable)" \
-  "2. A 2-3 sentence summary (in Portuguese) explaining WHAT this PR does and WHY" \
-  "3. Mention if it introduces new technologies, major refactoring, or significant changes" \
-  "4. Use proper formatting to make it more visually readable, instead of a bare summary." \
+  "INSTRUCTIONS:" \
+  "1. Generate a concise PR title (max 60 chars, Portuguese, human-readable)" \
+  "2. Write a 2-3 sentence summary paragraph explaining WHAT and WHY" \
+  "3. Group changes by conventional commit types and summarize (don't list raw commits):" \
+  "   - FEATURES: New functionality (from feat: commits)" \
+  "   - FIXES: Bug fixes (from fix: commits)" \
+  "   - DOCS: Documentation changes (from docs: commits)" \
+  "   - OTHER: Everything else (chore, refactor, style, test, ci, build, perf)" \
+  "4. For each category, write 1-3 bullet points summarizing the changes in that category" \
+  "5. If a category has no changes, write 'Nenhuma'" \
   "" \
-  "Format your response EXACTLY as:" \
-  "TITLE: <title here>" \
-  "SUMMARY: <summary here>" \
-  "TECH_NOTES: <tech notes here or 'Nenhuma mudança significativa de tecnologia'>" \
+  "FORMAT YOUR RESPONSE EXACTLY AS (keep the labels in English, content in Portuguese):" \
+  "TITLE: <título aqui>" \
+  "SUMMARY: <parágrafo resumo aqui>" \
+  "FEATURES: <bullet points ou 'Nenhuma'>" \
+  "FIXES: <bullet points ou 'Nenhuma'>" \
+  "DOCS: <bullet points ou 'Nenhuma'>" \
+  "OTHER: <bullet points ou 'Nenhuma'>" \
   | jq -Rs .)
 
 echo "Prompt built successfully (length: ${#PROMPT} chars)"
@@ -85,7 +96,7 @@ RESPONSE=$(curl -s -w "|||HTTP_STATUS:%{http_code}|||" https://api.groq.com/open
     \"messages\": [
       {
         \"role\": \"system\",
-        \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese.\"
+        \"content\": \"You are a code review assistant. Analyze git changes and create concise, professional PR summaries in Portuguese. Always follow the exact output format requested. For bullet points, use '- ' prefix.\"
       },
       {
         \"role\": \"user\",
@@ -93,7 +104,7 @@ RESPONSE=$(curl -s -w "|||HTTP_STATUS:%{http_code}|||" https://api.groq.com/open
       }
     ],
     \"temperature\": 0.5,
-    \"max_tokens\": 400
+    \"max_tokens\": 600
   }" 2>&1)
 
 CURL_EXIT=$?
@@ -115,20 +126,54 @@ if [ $CURL_EXIT -eq 0 ] && [ "$HTTP_STATUS" = "200" ]; then
     echo "✅ AI summary generated successfully"
     echo "$AI_CONTENT"
     
-    # Parse AI response
-    PR_TITLE=$(echo "$AI_CONTENT" | grep "TITLE:" | sed 's/TITLE: *//' | head -1)
-    PR_SUMMARY=$(echo "$AI_CONTENT" | grep "SUMMARY:" | sed 's/SUMMARY: *//' | head -1)
-    TECH_NOTES=$(echo "$AI_CONTENT" | grep "TECH_NOTES:" | sed 's/TECH_NOTES: *//' | head -1)
+    # Parse AI response - extract each section
+    PR_TITLE=$(echo "$AI_CONTENT" | grep "^TITLE:" | sed 's/^TITLE: *//' | head -1)
+    PR_SUMMARY=$(echo "$AI_CONTENT" | grep "^SUMMARY:" | sed 's/^SUMMARY: *//' | head -1)
     
-    # Save to output
+    # Extract multi-line sections (from label to next label or end)
+    # Using awk to handle multi-line content
+    FEATURES=$(echo "$AI_CONTENT" | awk '/^FEATURES:/{flag=1; sub(/^FEATURES: */, ""); if($0) print; next} /^(FIXES|DOCS|OTHER):/{flag=0} flag{print}' | sed '/^$/d')
+    FIXES=$(echo "$AI_CONTENT" | awk '/^FIXES:/{flag=1; sub(/^FIXES: */, ""); if($0) print; next} /^(DOCS|OTHER):/{flag=0} flag{print}' | sed '/^$/d')
+    DOCS=$(echo "$AI_CONTENT" | awk '/^DOCS:/{flag=1; sub(/^DOCS: */, ""); if($0) print; next} /^OTHER:/{flag=0} flag{print}' | sed '/^$/d')
+    OTHER=$(echo "$AI_CONTENT" | awk '/^OTHER:/{flag=1; sub(/^OTHER: */, ""); if($0) print; next} flag{print}' | sed '/^$/d')
+    
+    # Default to "Nenhuma" if empty
+    [ -z "$FEATURES" ] && FEATURES="Nenhuma"
+    [ -z "$FIXES" ] && FIXES="Nenhuma"
+    [ -z "$DOCS" ] && DOCS="Nenhuma"
+    [ -z "$OTHER" ] && OTHER="Nenhuma"
+    
+    # Save to output using delimiters for multi-line values
     {
       echo "ai_title=$PR_TITLE"
       echo "ai_summary=$PR_SUMMARY"
-      echo "ai_tech_notes=$TECH_NOTES"
+      
+      # Use heredoc delimiter for multi-line values
+      echo "ai_features<<FEATURES_EOF"
+      echo "$FEATURES"
+      echo "FEATURES_EOF"
+      
+      echo "ai_fixes<<FIXES_EOF"
+      echo "$FIXES"
+      echo "FIXES_EOF"
+      
+      echo "ai_docs<<DOCS_EOF"
+      echo "$DOCS"
+      echo "DOCS_EOF"
+      
+      echo "ai_other<<OTHER_EOF"
+      echo "$OTHER"
+      echo "OTHER_EOF"
+      
       echo "ai_success=true"
     } >> "$GITHUB_OUTPUT"
     
     echo "Title: $PR_TITLE"
+    echo "Summary: $PR_SUMMARY"
+    echo "Features: $FEATURES"
+    echo "Fixes: $FIXES"
+    echo "Docs: $DOCS"
+    echo "Other: $OTHER"
   else
     echo "⚠️ AI response was empty, using fallback"
     echo "API Response: $RESPONSE_BODY"

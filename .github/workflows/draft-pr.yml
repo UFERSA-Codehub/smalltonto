@@ -51,7 +51,10 @@ jobs:
         BRANCH: ${{ github.ref_name }}
         AI_SUCCESS: ${{ steps.ai-summary.outputs.ai_success }}
         AI_SUMMARY: ${{ steps.ai-summary.outputs.ai_summary }}
-        AI_TECH_NOTES: ${{ steps.ai-summary.outputs.ai_tech_notes }}
+        AI_FEATURES: ${{ steps.ai-summary.outputs.ai_features }}
+        AI_FIXES: ${{ steps.ai-summary.outputs.ai_fixes }}
+        AI_DOCS: ${{ steps.ai-summary.outputs.ai_docs }}
+        AI_OTHER: ${{ steps.ai-summary.outputs.ai_other }}
       run: |
         chmod +x .github/scripts/generate-pr-body.sh
         .github/scripts/generate-pr-body.sh
