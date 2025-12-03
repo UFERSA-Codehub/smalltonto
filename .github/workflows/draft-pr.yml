@@ -80,14 +80,6 @@ jobs:
           | jq -Rs .)
         echo "Prompt built successfully (length: ${#PROMPT} chars)"
         
-        # Now substitute variables and escape for JSON
-        PROMPT=$(echo "$PROMPT" | \
-          sed "s|\$BRANCH|$BRANCH|g" | \
-          sed "s|\$COMMIT_MESSAGES|$COMMIT_MESSAGES|g" | \
-          sed "s|\$FILES_CHANGED|$FILES_CHANGED|g" | \
-          sed "s|\$DIFF_STAT|$DIFF_STAT|g" | \
-          jq -Rs .)
-        
         # Call Groq API
         echo "Calling Groq API..."
         echo "DEBUG: About to run curl command"
