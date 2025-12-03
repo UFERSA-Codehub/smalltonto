@@ -196,79 +196,79 @@ jobs:
           
           # Construct PR body with AI summary
           cat > pr_body.md <<EOF
-        ## 🤖 Resumo
+## 🤖 Resumo
 
-        ${AI_SUMMARY}
+${AI_SUMMARY}
 
-        **Notas Técnicas:** ${AI_TECH_NOTES}
+**Notas Técnicas:** ${AI_TECH_NOTES}
 
-        ---
+---
 
-        ## 📊 Detalhes
+## 📊 Detalhes
 
-        **Branch:** \`${BRANCH}\`  
-        **Total de Commits:** ${COMMIT_COUNT}  
-        **Arquivos Alterados:** ${FILES_CHANGED}
+**Branch:** \`${BRANCH}\`  
+**Total de Commits:** ${COMMIT_COUNT}  
+**Arquivos Alterados:** ${FILES_CHANGED}
 
-        ## 📝 Commits
+## 📝 Commits
 
-        ${COMMITS}
+${COMMITS}
 
-        ${MORE_COMMITS}
+${MORE_COMMITS}
 
-        ## 📂 Arquivos Alterados
+## 📂 Arquivos Alterados
 
-        ${TREE_OUTPUT}
+${TREE_OUTPUT}
 
-        ${MORE_FILES}
+${MORE_FILES}
 
-        ---
+---
 
-        ### ✅ Checklist
-        - [ ] Código revisado
-        - [ ] Testes adicionados/atualizados
-        - [ ] Documentação atualizada
-        - [ ] Pronto para merge
+### ✅ Checklist
+- [ ] Código revisado
+- [ ] Testes adicionados/atualizados
+- [ ] Documentação atualizada
+- [ ] Pronto para merge
 
-        ---
+---
 
-        _🤖 Este PR foi criado automaticamente e é atualizado a cada push._  
-        _Última atualização: ${LAST_UPDATED}_
-        EOF
+_🤖 Este PR foi criado automaticamente e é atualizado a cada push._  
+_Última atualização: ${LAST_UPDATED}_
+EOF
         else
           # Fallback to basic summary without AI
           cat > pr_body.md <<EOF
-        ## 🚀 Resumo
+## 🚀 Resumo
 
-        **Branch:** \`${BRANCH}\`  
-        **Total de Commits:** ${COMMIT_COUNT}  
-        **Arquivos Alterados:** ${FILES_CHANGED}
+**Branch:** \`${BRANCH}\`  
+**Total de Commits:** ${COMMIT_COUNT}  
+**Arquivos Alterados:** ${FILES_CHANGED}
 
-        ## 📝 Commits
+## 📝 Commits
 
-        ${COMMITS}
+${COMMITS}
 
-        ${MORE_COMMITS}
+${MORE_COMMITS}
 
-        ## 📂 Arquivos Alterados
+## 📂 Arquivos Alterados
 
-        ${TREE_OUTPUT}
+${TREE_OUTPUT}
 
-        ${MORE_FILES}
+${MORE_FILES}
 
-        ---
+---
 
-        ### ✅ Checklist
-        - [ ] Código revisado
-        - [ ] Testes adicionados/atualizados
-        - [ ] Documentação atualizada
-        - [ ] Pronto para merge
+### ✅ Checklist
+- [ ] Código revisado
+- [ ] Testes adicionados/atualizados
+- [ ] Documentação atualizada
+- [ ] Pronto para merge
 
-        ---
+---
 
-        _🤖 Este PR foi criado automaticamente e é atualizado a cada push._  
-        _Última atualização: ${LAST_UPDATED}_
-        EOF
+_🤖 Este PR foi criado automaticamente e é atualizado a cada push._  
+_Última atualização: ${LAST_UPDATED}_
+EOF
         fi
 
     - name: Create Draft PR
