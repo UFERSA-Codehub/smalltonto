@@ -271,3 +271,35 @@ def get_token_category(token_type):
         return "NEW_DATATYPE"
     else:
         return "OTHER"
+
+
+def get_class_stereotype_names() -> list[str]:
+    """Get list of valid class stereotype names."""
+    return list(class_stereotypes.keys())
+def get_relation_stereotype_names() -> list[str]:
+    """Get list of valid relation stereotype names."""
+    return list(relation_stereotypes.keys())
+
+def _is_similar(s1: str, s2: str, threshold: int = 2) -> bool:
+        """Verifica se duas strings são similares (distância de Levenshtein <= threshold)."""
+        if abs(len(s1) - len(s2)) > threshold:
+            return False
+        
+        # Cálculo simples da distância de Levenshtein
+        if len(s1) < len(s2):
+            s1, s2 = s2, s1
+        
+        if len(s2) == 0:
+            return len(s1) <= threshold
+        
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+        
+        return previous_row[-1] <= threshold
