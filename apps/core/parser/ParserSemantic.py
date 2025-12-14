@@ -598,47 +598,47 @@ class ParserSemantic:
                         )
                     })
 
-                    if not genset_def.get('disjoint'):
-                        violations.append({
-                            "code": "MISSING_DISJOINT",
-                            "severity": "warning",
-                            "message": f"Subkind_Pattern genset '{genset_def.get('genset_name')}' should have 'disjoint' keyword"
-                        })
-                        suggestions.append({
-                            "type": "coercion",
-                            "action": "add_keyword",
-                            "message": "Add 'disjoint' keyword to genset",
-                            "code_suggestion": f"disjoint genset {genset_def.get('genset_name')} {{ ... }}"
-                        })
+                if not genset_def.get('disjoint'):
+                    violations.append({
+                        "code": "MISSING_DISJOINT",
+                        "severity": "warning",
+                        "message": f"Subkind_Pattern genset '{genset_def.get('genset_name')}' should have 'disjoint' keyword"
+                    })
+                    suggestions.append({
+                        "type": "coercion",
+                        "action": "add_keyword",
+                        "message": "Add 'disjoint' keyword to genset",
+                        "code_suggestion": f"disjoint genset {genset_def.get('genset_name')} {{ ... }}"
+                    })
 
-                        # Construir o dicionário das propriedades do genset
-                        constraints = {
-                            "disjoint": genset_def.get('disjoint', False) if genset_def else False,
-                            "complete": genset_def.get('complete', False) if genset_def else False
-                        }
+            # Construir o dicionário das propriedades do genset
+            constraints = {
+                "disjoint": genset_def.get('disjoint', False) if genset_def else False,
+                "complete": genset_def.get('complete', False) if genset_def else False
+            }
 
-                        # Construir o dicionário dos elementos do genset
-                        elements = {
-                            "general": kind_name,
-                            "specifics": subkind_names,
-                            "genset": genset_def.get('genset_name') if genset_def else None
-                        }
+            # Construir o dicionário dos elementos do genset
+            elements = {
+                "general": kind_name,
+                "specifics": subkind_names,
+                "genset": genset_def.get('genset_name') if genset_def else None
+            }
 
-                        # Criar o padrão e adicionar à lista apropriada
-                        pattern = self._create_pattern(
-                            pattern_type="Subkind_Pattern",
-                            anchor_class=kind_name,
-                            anchor_stereotype="kind",
-                            elements=elements,
-                            constraints=constraints,
-                            violations=violations,
-                            suggestions=suggestions
-                        )
+            # Criar o padrão e adicionar à lista apropriada
+            pattern = self._create_pattern(
+                pattern_type="Subkind_Pattern",
+                anchor_class=kind_name,
+                anchor_stereotype="kind",
+                elements=elements,
+                constraints=constraints,
+                violations=violations,
+                suggestions=suggestions
+            )
 
-                        if violations:
-                            self.incomplete_patterns.append(pattern)
-                        else:
-                            self.patterns.append(pattern)
+            if violations:
+                self.incomplete_patterns.append(pattern)
+            else:
+                self.patterns.append(pattern)
 
     def _detect_role_patterns(self) -> None:
         '''
