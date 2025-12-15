@@ -71,6 +71,108 @@ def main():
             print(f"  {pattern_type}: {count}")
 
     file_result = result.get("files", [{}])[0]
+
+    symbols = file_result.get("symbols", {})
+    relations = symbols.get("relations", [])
+    
+    #TODO mudar esse print de lugar/jogar fora pra matixinha n brigar
+    if relations:
+        print("\n" + "=" * 60)
+        print("RELATIONS DETECTED")
+        print("=" * 60)
+        
+        # Separar relações internas e externas
+        internal_rels = [r for r in relations if r.get('node_type') == 'internal_relation']
+        external_rels = [r for r in relations if r.get('node_type') == 'external_relation']
+        
+        if internal_rels:
+            print("\n" + "-" * 40)
+            print("INTERNAL RELATIONS (within class bodies)")
+            print("-" * 40)
+            for rel in internal_rels:
+                source = rel.get('source_class', '?')
+                target = rel.get('second_end', '?')
+                stereotype = rel.get('relation_stereotype', 'none')
+                card1 = rel.get('first_cardinality', '*')
+                card2 = rel.get('second_cardinality', '*')
+                
+                print(f"\n  Source: {source}")
+                print(f"  Target: {target}")
+                print(f"  Stereotype: @{stereotype}" if stereotype != 'none' else "  Stereotype: (none)")
+                print(f"  Cardinality: [{card1}] -> [{card2}]")
+        
+        if external_rels:
+            print("\n" + "-" * 40)
+            print("EXTERNAL RELATIONS (between classes)")
+            print("-" * 40)
+            for rel in external_rels:
+                first = rel.get('first_end', '?')
+                second = rel.get('second_end', '?')
+                stereotype = rel.get('relation_stereotype', 'none')
+                card1 = rel.get('first_cardinality', '*')
+                card2 = rel.get('second_cardinality', '*')
+                
+                print(f"\n  {first} <-> {second}")
+                print(f"  Stereotype: @{stereotype}" if stereotype != 'none' else "  Stereotype: (none)")
+                print(f"  Cardinality: [{card1}] <-> [{card2}]")
+
+    # NOVA SEÇÃO: DETALHAMENTO DE ROLES
+    classes = symbols.get("classes", [])
+    role_classes = [c for c in classes if c.get('class_stereotype') == 'role']
+    
+    if role_classes:
+        print("\n" + "=" * 60)
+        print("ROLES DETECTED")
+        print("=" * 60)
+        
+        for role_class in role_classes:
+            role_name = role_class.get('class_name')
+            specialization = role_class.get('specialization', {})
+            parents = specialization.get('parents', [])
+            body = role_class.get('body')
+            
+            print(f"\n {role_name}")
+            
+            if parents:
+                print(f"  Specializes: {', '.join(parents)}")
+            else:
+                print(f"  Specializes: (none)")
+            
+            # Verificar se tem corpo com conteúdo
+            if body and len(body) > 0:
+                print(f"  Declaration: with body")
+                
+                # Extrair atributos
+                attributes = [item for item in body if item.get('node_type') == 'attribute']
+                if attributes:
+                    print(f"  Attributes:")
+                    for attr in attributes:
+                        attr_name = attr.get('attribute_name')
+                        attr_type = attr.get('attribute_type')
+                        cardinality = attr.get('cardinality')
+                        
+                        if cardinality:
+                            card_value = cardinality.get('value', '*')
+                            print(f"    • {attr_name} : {attr_type} [{card_value}]")
+                        else:
+                            print(f"    • {attr_name} : {attr_type}")
+                
+                # Extrair relações internas
+                internal_relations = [item for item in body if item.get('node_type') == 'internal_relation']
+                if internal_relations:
+                    print(f"  Internal Relations:")
+                    for rel in internal_relations:
+                        stereotype = rel.get('relation_stereotype', 'none')
+                        target = rel.get('second_end')
+                        cardinality = rel.get('second_cardinality', '*')
+                        
+                        if stereotype != 'none':
+                            print(f"    • @{stereotype} -> {target} [{cardinality}]")
+                        else:
+                            print(f"    • (no stereotype) -> {target} [{cardinality}]")
+            else:
+                print(f"  Declaration: inline (no body)")
+
     complete = file_result.get("patterns", [])
     incomplete = file_result.get("incomplete_patterns", [])
 
