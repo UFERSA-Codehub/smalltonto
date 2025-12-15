@@ -2,26 +2,46 @@
   flex: 1;
   min-width: 0;
   height: 100%;
+  display: flex;
+  flex-direction: column;
   background: var(--color-background);
   position: relative;
 }
 
-/* React Flow overrides */
-.ontouml-diagram .react-flow {
-  background: var(--color-background);
+.ontouml-diagram--placeholder {
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
 }
 
+.ontouml-diagram__placeholder-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ontouml-diagram__placeholder-hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* React Flow container */
+.ontouml-diagram .react-flow {
+  flex: 1;
+}
+
+/* React Flow controls styling */
 .ontouml-diagram .react-flow__controls {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border);
 }
 
 .ontouml-diagram .react-flow__controls-button {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
   width: 28px;
   height: 28px;
 }
@@ -38,35 +58,23 @@
   fill: var(--color-text);
 }
 
-/* MiniMap */
-.ontouml-diagram .react-flow__minimap {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-/* Background */
+/* React Flow background */
 .ontouml-diagram .react-flow__background {
-  background-color: var(--color-background);
+  background: var(--color-background);
 }
 
-/* Edge labels */
-.ontouml-diagram .react-flow__edge-textbg {
-  fill: var(--color-surface);
-}
-
-.ontouml-diagram .react-flow__edge-text {
-  fill: var(--color-text-secondary);
+/* React Flow attribution - hide it */
+.ontouml-diagram .react-flow__attribution {
+  display: none;
 }
 
 /* Selection box */
 .ontouml-diagram .react-flow__selection {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px dashed var(--color-primary);
+  background: rgba(0, 102, 204, 0.1);
+  border: 1px solid var(--color-primary);
 }
 
-/* Panel styling */
-.ontouml-diagram .react-flow__panel {
-  margin: 12px;
+/* Selected node styling */
+.ontouml-diagram .react-flow__node.selected .ontouml-node {
+  box-shadow: 0 0 0 2px var(--color-primary);
 }

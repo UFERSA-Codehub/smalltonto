@@ -98,6 +98,19 @@
   color: white;
 }
 
+.analysis-panel__tab--has-warnings {
+  color: var(--color-warning, #f59e0b);
+}
+
+.analysis-panel__tab--has-warnings.analysis-panel__tab--active {
+  color: var(--color-warning, #f59e0b);
+}
+
+.analysis-panel__tab--has-warnings .analysis-panel__tab-count {
+  background: var(--color-warning, #f59e0b);
+  color: white;
+}
+
 .analysis-panel__toggle {
   display: flex;
   align-items: center;

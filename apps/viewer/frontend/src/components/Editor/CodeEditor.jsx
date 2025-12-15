@@ -74,7 +74,7 @@ const tontoLanguage = StreamLanguage.define({
       return "variableName";
     }
 
-    if (stream.match(/[{}()\[\];,.:@]/)) {
+    if (stream.match(/[{}()[\];,.:@]/)) {
       return "punctuation";
     }
 
@@ -135,10 +135,16 @@ function createEditorTheme(theme) {
       padding: "0 8px 0 16px",
     },
     ".cm-error-line": {
-      backgroundColor: `${theme.error}15`,
+      backgroundColor: `${theme.error}28`,
     },
     ".cm-error-line-gutter": {
-      backgroundColor: `${theme.error}25`,
+      backgroundColor: `${theme.error}38`,
+    },
+    ".cm-warning-line": {
+      backgroundColor: `${theme.warning}22`,
+    },
+    ".cm-warning-line-gutter": {
+      backgroundColor: `${theme.warning}32`,
     },
     ".cm-token-highlight": {
       backgroundColor: `${theme.primary}35`,
@@ -148,15 +154,20 @@ function createEditorTheme(theme) {
       backgroundColor: `${theme.error}40`,
       borderRadius: "2px",
     },
+    ".cm-warning-highlight": {
+      backgroundColor: `${theme.warning}40`,
+      borderRadius: "2px",
+    },
   });
 }
 
 const setErrorLinesEffect = StateEffect.define();
+const setWarningLinesEffect = StateEffect.define();
 const setHighlightEffect = StateEffect.define();
 const clearHighlightEffect = StateEffect.define();
 
 const errorLineDecoration = Decoration.line({ class: "cm-error-line" });
-const errorLineGutterDecoration = Decoration.line({ class: "cm-error-line-gutter" });
+const warningLineDecoration = Decoration.line({ class: "cm-warning-line" });
 
 const errorLinesField = StateField.define({
   create() {
@@ -181,6 +192,29 @@ const errorLinesField = StateField.define({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+const warningLinesField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setWarningLinesEffect)) {
+        const { warningLines, doc } = effect.value;
+        const decos = [];
+        for (const lineNum of warningLines) {
+          if (lineNum >= 1 && lineNum <= doc.lines) {
+            const line = doc.line(lineNum);
+            decos.push(warningLineDecoration.range(line.from));
+          }
+        }
+        return Decoration.set(decos, true);
+      }
+    }
+    return decorations.map(tr.changes);
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 const highlightField = StateField.define({
   create() {
     return Decoration.none;
@@ -189,7 +223,12 @@ const highlightField = StateField.define({
     for (const effect of tr.effects) {
       if (effect.is(setHighlightEffect)) {
         const { from, to, type } = effect.value;
-        const className = type === "error" ? "cm-error-highlight" : "cm-token-highlight";
+        let className = "cm-token-highlight";
+        if (type === "error") {
+          className = "cm-error-highlight";
+        } else if (type === "warning") {
+          className = "cm-warning-highlight";
+        }
         const mark = Decoration.mark({ class: className });
         return Decoration.set([mark.range(from, to)]);
       }
@@ -319,6 +358,18 @@ export default function CodeEditor() {
         doc: viewRef.current.state.doc,
       }),
     });
+
+    // Update warning line highlights
+    const warningLines = (parseResult.warnings || [])
+      .filter((w) => typeof w.line === "number" && w.line > 0)
+      .map((w) => w.line);
+
+    viewRef.current.dispatch({
+      effects: setWarningLinesEffect.of({
+        warningLines,
+        doc: viewRef.current.state.doc,
+      }),
+    });
   }, [parseResult]);
 
   useEffect(() => {
@@ -387,6 +438,7 @@ export default function CodeEditor() {
         syntaxHighlighting(highlightStyle),
         editorTheme,
         errorLinesField,
+        warningLinesField,
         highlightField,
         keymap.of([
           ...defaultKeymap,
@@ -416,6 +468,20 @@ export default function CodeEditor() {
       });
     }
 
+    // Set initial warning lines
+    if (parseResult?.warnings) {
+      const warningLines = parseResult.warnings
+        .filter((w) => w.line)
+        .map((w) => w.line);
+
+      viewRef.current.dispatch({
+        effects: setWarningLinesEffect.of({
+          warningLines,
+          doc: viewRef.current.state.doc,
+        }),
+      });
+    }
+
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
@@ -431,6 +497,7 @@ export default function CodeEditor() {
         viewRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab?.path, theme]);
 
   useEffect(() => {
@@ -440,7 +507,7 @@ export default function CodeEditor() {
     return () => {
       delete window.__tontoEditorView;
     };
-  }, [viewRef.current]);
+  }, [activeTab?.path, theme]);
 
   if (!activeTab) return null;
 

@@ -95,8 +95,40 @@ function MainContent() {
     );
   }
 
-  // Check for empty AST
-  if (!parseResult?.ast || !parseResult.ast.content || parseResult.ast.content.length === 0) {
+  // Check for content using semantic data (preferred) or AST as fallback
+  // Semantic data is richer and should be the primary source for visualization
+  const symbols = parseResult?.semantic?.symbols;
+  const hasSemanticContent = 
+    (symbols?.classes?.length > 0) ||
+    (symbols?.enums?.length > 0) ||
+    (symbols?.datatypes?.length > 0) ||
+    (symbols?.relations?.length > 0);
+  
+  // Fallback to AST content only if semantic data is not available
+  const hasAstContent = parseResult?.ast?.content?.length > 0;
+  const hasContent = hasSemanticContent || hasAstContent;
+
+  if (!parseResult?.semantic && !parseResult?.ast) {
+    return (
+      <div className="main-content main-content--empty">
+        <div className="main-content__message">
+          <div className="main-content__icon main-content__icon--warning">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <p className="main-content__title">No Parse Result</p>
+          <p className="main-content__subtitle">
+            Unable to parse the file. Check for syntax errors.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasContent) {
     return (
       <div className="main-content main-content--empty">
         <div className="main-content__message">

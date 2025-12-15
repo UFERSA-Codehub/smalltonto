@@ -1,23 +1,20 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useApp } from "../AppShell";
-import HierarchyDiagram from "./HierarchyDiagram/HierarchyDiagram";
+import OntoUmlDiagram from "./OntoUmlDiagram/OntoUmlDiagram";
 import AstTreeView from "./AstTreeView/AstTreeView";
-// OntoUML diagram hidden for now - keeping code for future use
-// import OntoUmlDiagram from "./OntoUmlDiagram/OntoUmlDiagram";
 import SummaryPanel from "./SummaryPanel";
 import "./AstViewer.css";
 
 const VIEW_MODES = {
-  HIERARCHY: "hierarchy",
+  ONTOUML: "ontouml",
   TREE: "tree",
   RAW: "raw",
-  // ONTOUML: "ontouml", // Hidden for now
 };
 
 export default function AstViewer({ ast }) {
   const { selectedAstNode, setSelectedAstNode } = useApp();
-  const [viewMode, setViewMode] = useState(VIEW_MODES.HIERARCHY);
+  const [viewMode, setViewMode] = useState(VIEW_MODES.ONTOUML);
 
   const packageName = ast?.package?.package_name || "Untitled";
 
@@ -27,10 +24,10 @@ export default function AstViewer({ ast }) {
       <div className="ast-viewer__header">
         <div className="ast-viewer__tabs">
           <button
-            className={`ast-viewer__tab ${viewMode === VIEW_MODES.HIERARCHY ? "ast-viewer__tab--active" : ""}`}
-            onClick={() => setViewMode(VIEW_MODES.HIERARCHY)}
+            className={`ast-viewer__tab ${viewMode === VIEW_MODES.ONTOUML ? "ast-viewer__tab--active" : ""}`}
+            onClick={() => setViewMode(VIEW_MODES.ONTOUML)}
           >
-            AST Hierarchy
+            OntoUML Diagram
           </button>
           <button
             className={`ast-viewer__tab ${viewMode === VIEW_MODES.TREE ? "ast-viewer__tab--active" : ""}`}
@@ -52,13 +49,9 @@ export default function AstViewer({ ast }) {
 
       {/* Diagram Content */}
       <div className="ast-viewer__content">
-        {viewMode === VIEW_MODES.HIERARCHY ? (
+        {viewMode === VIEW_MODES.ONTOUML ? (
           <ReactFlowProvider>
-            <HierarchyDiagram
-              ast={ast}
-              selectedNodeId={selectedAstNode}
-              onNodeSelect={setSelectedAstNode}
-            />
+            <OntoUmlDiagram />
           </ReactFlowProvider>
         ) : viewMode === VIEW_MODES.TREE ? (
           <AstTreeView

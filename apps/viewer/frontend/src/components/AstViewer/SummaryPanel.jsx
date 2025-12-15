@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Package, Box, Database, List, GitBranch, Link, FileText, Import, ArrowRightLeft } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Package, Box, Database, List, GitBranch, Link, FileText, Import, ArrowRightLeft, Puzzle, AlertTriangle, CheckCircle } from "lucide-react";
 import { useApp } from "../AppShell";
-import { transformAstToFlow, getSummaryStats } from "./HierarchyDiagram/utils/astToFlow";
+import { transformAstToSummary, getSummaryStats } from "./OntoUmlDiagram/utils/astToOntoUml";
 import "./SummaryPanel.css";
 
 const MIN_WIDTH = 280;
@@ -9,55 +9,127 @@ const MAX_WIDTH = 450;
 const DEFAULT_WIDTH = 320;
 
 export default function SummaryPanel({ ast }) {
-  const { selectedAstNode, setSelectedAstNode } = useApp();
+  const { selectedAstNode, setSelectedAstNode, parseResult } = useApp();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const panelRef = useRef(null);
+  const isResizingRef = useRef(false);
 
-  // Transform AST to get summary
-  const { summary } = useMemo(() => {
-    return transformAstToFlow(ast);
-  }, [ast]);
+  // Get semantic data if available (API flattens files array to single object)
+  const semantic = parseResult?.semantic;
+  const symbols = semantic?.symbols;
+  const patterns = semantic?.patterns || [];
+  const incompletePatterns = semantic?.incomplete_patterns || [];
+  const patternCounts = semantic?.summary?.pattern_counts || {};
 
-  const stats = useMemo(() => getSummaryStats(summary), [summary]);
+  // Transform AST to get summary (fallback for when semantic data isn't available)
+  const { summary } = transformAstToSummary(ast);
+
+  // Build summary from semantic symbols if available, otherwise use AST
+  const stats = symbols
+    ? {
+        packageCount: summary.packages?.length || 0,
+        importCount: summary.imports?.length || 0,
+        classCount: (symbols.classes || []).length,
+        datatypeCount: (symbols.datatypes || []).length,
+        enumCount: (symbols.enums || []).length,
+        gensetCount: (symbols.gensets || []).length,
+        externalRelationCount: (symbols.relations || []).filter(r => r.node_type === "external_relation").length,
+        internalRelationCount: (symbols.relations || []).filter(r => r.node_type === "internal_relation").length,
+        attributeCount: (symbols.classes || []).reduce((acc, cls) => acc + ((cls.body || []).filter(item => item.node_type === "attribute")).length, 0),
+      }
+    : getSummaryStats(summary);
+
+  // Build class list from semantic data
+  const classList = symbols?.classes
+    ? symbols.classes.map((cls) => ({
+        id: `class-${cls.class_name}`,
+        name: cls.class_name,
+        stereotype: cls.class_stereotype,
+      }))
+    : summary.classes?.list || [];
+
+  // Build stereotype breakdown
+  const classByStereotype = symbols?.classes
+    ? symbols.classes.reduce((acc, cls) => {
+        const st = cls.class_stereotype || "unknown";
+        acc[st] = (acc[st] || 0) + 1;
+        return acc;
+      }, {})
+    : summary.classes?.byStereotype || {};
+
+  // Build internal relations list from semantic data or AST summary
+  const internalRelationsList = symbols?.relations
+    ? symbols.relations
+        .filter(r => r.node_type === "internal_relation")
+        .map((rel, idx) => ({
+          id: `intrel-${rel.source_class}-${idx}`,
+          parentClass: rel.source_class,
+          targetClass: rel.second_end,
+          stereotype: rel.relation_stereotype,
+        }))
+    : summary.internalRelations || [];
+
+  // Build attributes list from semantic data or AST summary
+  const attributesList = symbols?.classes
+    ? symbols.classes.flatMap(cls =>
+        (cls.body || [])
+          .filter(item => item.node_type === "attribute")
+          .map(attr => {
+            const card = attr.cardinality;
+            return {
+              id: `attr-${cls.class_name}-${attr.attribute_name}`,
+              parentClass: cls.class_name,
+              name: attr.attribute_name,
+              type: attr.attribute_type,
+              cardinality: card ? `[${card.min}${card.min !== card.max ? `..${card.max}` : ""}]` : null,
+            };
+          })
+      )
+    : summary.attributes || [];
 
   const handleMouseDown = (e) => {
     e.preventDefault();
+    isResizingRef.current = true;
     setIsResizing(true);
   };
 
-  const handleMouseMove = useCallback(
-    (e) => {
-      if (!isResizing || !panelRef.current) return;
-
+  // Resize handlers using refs to avoid stale closures
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current || !panelRef.current) return;
       const panelRect = panelRef.current.getBoundingClientRect();
       const newWidth = panelRect.right - e.clientX;
-      const clampedWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth));
-      setWidth(clampedWidth);
-    },
-    [isResizing]
-  );
+      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth)));
+    };
 
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
+    const handleMouseUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        setIsResizing(false);
+      }
+    };
 
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    }
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  // Handle cursor style during resize
+  useEffect(() => {
+    if (isResizing) {
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    } else {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-    };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+    }
+  }, [isResizing]);
 
   const handleItemClick = (nodeId) => {
     setSelectedAstNode(nodeId);
@@ -116,7 +188,7 @@ export default function SummaryPanel({ ast }) {
           icon={<Box size={14} />}
           title="Classes"
           count={stats.classCount}
-          items={summary.classes.list}
+          items={classList}
           selectedId={selectedAstNode}
           onItemClick={handleItemClick}
           renderItem={(cls) => (
@@ -127,7 +199,7 @@ export default function SummaryPanel({ ast }) {
               {cls.name}
             </>
           )}
-          groupBy={summary.classes.byStereotype}
+          groupBy={classByStereotype}
         />
 
         {/* Datatypes Section */}
@@ -191,19 +263,50 @@ export default function SummaryPanel({ ast }) {
           )}
         />
 
-        {/* Statistics */}
-        <div className="summary-panel__stats">
-          <div className="summary-panel__stat">
-            <Link size={12} />
-            <span>Internal Relations:</span>
-            <strong>{stats.internalRelationCount}</strong>
-          </div>
-          <div className="summary-panel__stat">
-            <FileText size={12} />
-            <span>Attributes:</span>
-            <strong>{stats.attributeCount}</strong>
-          </div>
-        </div>
+        {/* Patterns Section */}
+        <PatternsSection
+          patterns={patterns}
+          incompletePatterns={incompletePatterns}
+          patternCounts={patternCounts}
+        />
+
+        {/* Internal Relations Section */}
+        <SummarySection
+          icon={<Link size={14} />}
+          title="Internal Relations"
+          count={stats.internalRelationCount}
+          items={internalRelationsList}
+          selectedId={selectedAstNode}
+          onItemClick={handleItemClick}
+          renderItem={(rel) => (
+            <>
+              <span className="summary-item__stereotype summary-item__stereotype--relation">
+                @{rel.stereotype}
+              </span>
+              <span className="summary-item__relation-ends">
+                {rel.parentClass} → {rel.targetClass}
+              </span>
+            </>
+          )}
+        />
+
+        {/* Attributes Section */}
+        <SummarySection
+          icon={<FileText size={14} />}
+          title="Attributes"
+          count={stats.attributeCount}
+          items={attributesList}
+          selectedId={selectedAstNode}
+          onItemClick={handleItemClick}
+          renderItem={(attr) => (
+            <>
+              <span className="summary-item__attr-parent">{attr.parentClass}.</span>
+              <span>{attr.name}</span>
+              <span className="summary-item__attr-type">: {attr.type}</span>
+              {attr.cardinality && <span className="summary-item__cardinality">{attr.cardinality}</span>}
+            </>
+          )}
+        />
       </div>
     </aside>
   );
@@ -260,6 +363,95 @@ function SummarySection({ icon, title, count, items, selectedId, onItemClick, re
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PatternsSection({ patterns, incompletePatterns, patternCounts }) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const totalPatterns = patterns.length + incompletePatterns.length;
+  const hasPatterns = totalPatterns > 0;
+
+  // Get non-zero pattern counts for display
+  const activePatternTypes = Object.entries(patternCounts)
+    .filter(([, count]) => count > 0)
+    .map(([type, count]) => ({ type: type.replace("_Pattern", ""), count }));
+
+  if (!hasPatterns) {
+    return (
+      <div className="summary-section summary-section--empty">
+        <div className="summary-section__header" onClick={() => setIsExpanded(!isExpanded)}>
+          <Puzzle size={14} />
+          <span className="summary-section__title">Patterns</span>
+          <span className="summary-section__count">0</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="summary-section summary-section--patterns">
+      <div className="summary-section__header" onClick={() => setIsExpanded(!isExpanded)}>
+        <Puzzle size={14} />
+        <span className="summary-section__title">Patterns</span>
+        <span className="summary-section__count">{totalPatterns}</span>
+        <span className={`summary-section__chevron ${isExpanded ? "summary-section__chevron--expanded" : ""}`}>
+          ▶
+        </span>
+      </div>
+
+      {isExpanded && (
+        <div className="summary-section__content">
+          {/* Pattern type breakdown */}
+          <div className="summary-section__groups">
+            {activePatternTypes.map(({ type, count }) => (
+              <span key={type} className="summary-section__group">
+                {type}: <strong>{count}</strong>
+              </span>
+            ))}
+          </div>
+
+          {/* Complete patterns */}
+          {patterns.length > 0 && (
+            <div className="patterns-list">
+              <div className="patterns-list__header patterns-list__header--complete">
+                <CheckCircle size={12} />
+                <span>Complete ({patterns.length})</span>
+              </div>
+              <ul className="summary-section__list">
+                {patterns.map((pattern, idx) => (
+                  <li key={`complete-${idx}`} className="summary-item summary-item--pattern-complete">
+                    <span className="summary-item__pattern-type">{pattern.pattern_type?.replace("_", " ")}</span>
+                    <span className="summary-item__pattern-anchor">{pattern.anchor_class}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Incomplete patterns */}
+          {incompletePatterns.length > 0 && (
+            <div className="patterns-list">
+              <div className="patterns-list__header patterns-list__header--incomplete">
+                <AlertTriangle size={12} />
+                <span>Incomplete ({incompletePatterns.length})</span>
+              </div>
+              <ul className="summary-section__list">
+                {incompletePatterns.map((pattern, idx) => (
+                  <li key={`incomplete-${idx}`} className="summary-item summary-item--pattern-incomplete">
+                    <span className="summary-item__pattern-type">{pattern.pattern_type?.replace("_", " ")}</span>
+                    <span className="summary-item__pattern-anchor">{pattern.anchor_class}</span>
+                    <span className="summary-item__pattern-issues">
+                      {pattern.violations?.length || 0} issue{pattern.violations?.length !== 1 ? "s" : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

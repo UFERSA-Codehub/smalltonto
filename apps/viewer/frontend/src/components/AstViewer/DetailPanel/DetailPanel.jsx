@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { X, Box, Database, List, GitBranch, Link, ArrowRight } from "lucide-react";
 import "./DetailPanel.css";
 

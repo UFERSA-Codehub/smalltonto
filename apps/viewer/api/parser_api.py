@@ -7,6 +7,7 @@ if core_path not in sys.path:
 
 from lexer.MyLexer import MyLexer
 from parser.MyParser import MyParser
+from parser.ParserSemantic import ParserSemantic
 
 
 class ParserAPI:
@@ -15,6 +16,7 @@ class ParserAPI:
         self.lexer.build()
         self.parser = MyParser(self.lexer)
         self.parser.build(debug=False, write_tables=False)
+        self.semantic = ParserSemantic()
 
     def parse_content(self, content: str, filename: str = "<unknown>") -> dict:
         self.lexer.reset()
@@ -48,7 +50,7 @@ class ParserAPI:
             )
 
         if errors:
-            return {"tokens": tokens, "ast": None, "errors": errors}
+            return {"tokens": tokens, "ast": None, "semantic": None, "errors": errors, "warnings": []}
 
         self.lexer.reset()
         ast = self.parser.parse(content, filename)
@@ -63,7 +65,53 @@ class ParserAPI:
                 }
             )
 
-        return {"tokens": tokens, "ast": ast, "errors": errors}
+        # Fase 3: Análise Semântica (apenas se a análise sintática foi bem-sucedida)
+        semantic_result = None
+        warnings = []
+
+        if ast is not None:
+            sem_result = self.semantic.analyze(ast, filename)
+
+            # Extrair dados do resultado semântico
+            file_data = sem_result.get("files", [{}])[0]
+            semantic_result = {
+                "symbols": file_data.get("symbols", {}),
+                "patterns": file_data.get("patterns", []),
+                "incomplete_patterns": file_data.get("incomplete_patterns", []),
+                "summary": sem_result.get("summary", {}),
+            }
+
+            # Agregar erros e warnings semânticos
+            for err in file_data.get("errors", []):
+                errors.append({
+                    "type": "SemanticError",
+                    "message": err.get("message", str(err)),
+                    "line": err.get("line", 0),
+                    "column": err.get("column", 0),
+                })
+
+            for warn in file_data.get("warnings", []):
+                warning_obj = {
+                    "type": "SemanticWarning",
+                    "code": warn.get("code"),
+                    "message": warn.get("message", str(warn)),
+                    "line": warn.get("line", 0),
+                    "column": warn.get("column", 0),
+                    "pattern_type": warn.get("pattern_type"),
+                    "anchor_class": warn.get("anchor_class"),
+                }
+                # Include suggestion if present
+                if warn.get("suggestion"):
+                    warning_obj["suggestion"] = warn.get("suggestion")
+                warnings.append(warning_obj)
+
+        return {
+            "tokens": tokens,
+            "ast": ast,
+            "semantic": semantic_result,
+            "errors": errors,
+            "warnings": warnings,
+        }
 
     def parse_file(self, path: str) -> dict:
         try:
@@ -74,5 +122,7 @@ class ParserAPI:
             return {
                 "tokens": [],
                 "ast": None,
+                "semantic": None,
                 "errors": [{"type": "FileError", "message": str(e), "line": 0, "column": 0}],
+                "warnings": [],
             }

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const shortcutRegistry = new Map();
 
@@ -60,7 +60,11 @@ let listenerAttached = false;
 
 export function useKeyboardShortcuts(shortcuts) {
   const shortcutsRef = useRef(shortcuts);
-  shortcutsRef.current = shortcuts;
+  
+  // Update ref inside useEffect to avoid ref access during render
+  useEffect(() => {
+    shortcutsRef.current = shortcuts;
+  });
 
   useEffect(() => {
     if (!listenerAttached) {
@@ -89,7 +93,6 @@ export function useKeyboardShortcuts(shortcuts) {
 }
 
 export function useKeyboardShortcut(shortcut, handler) {
-  const shortcuts = useCallback(() => ({ [shortcut]: handler }), [shortcut, handler]);
   useKeyboardShortcuts({ [shortcut]: handler });
 }
 

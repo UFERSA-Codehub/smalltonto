@@ -84,6 +84,7 @@ export default function FileTree({ rootPath }) {
 
   useEffect(() => {
     loadRoot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootPath]);
 
   const loadRoot = async () => {

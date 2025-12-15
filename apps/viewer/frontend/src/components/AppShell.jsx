@@ -9,8 +9,10 @@ import SettingsModal from "./Settings/SettingsModal";
 import ConfirmDialog from "./Settings/ConfirmDialog";
 import "./AppShell.css";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AppContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useApp = () => {
   const context = useContext(AppContext);
   if (!context) {
@@ -100,6 +102,7 @@ export default function AppShell({ children }) {
         setParseResult(null);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [openTabs, activeTabPath]
   );
 
@@ -169,6 +172,7 @@ export default function AppShell({ children }) {
         await parseContent(tab.content);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [openTabs]
   );
 
@@ -311,6 +315,7 @@ export default function AppShell({ children }) {
     } else if (!activeTab) {
       setParseResult(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabPath]);
 
   const contextValue = {
