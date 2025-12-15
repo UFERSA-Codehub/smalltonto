@@ -41,14 +41,17 @@ language_keywords = {
     "relators": "KEYWORD_RELATORS",
     "relation": "KEYWORD_RELATION",
     "inverseOf": "KEYWORD_INVERSEOF",
-    # TODO: Adicionar o restante das palavras reservadas!
-    # "specializes" // ✅
-    # "," //  ✅
-    # "-" (não reconhece no functional-complexes) //
-    # "of" // ✅
-    # "relator" // ✅
-    # "relators" // ✅
-    # "--" // ✅
+    "of": "KEYWORD_OF",
+    "objects": "KEYWORD_OBJECTS",
+    "collectives": "KEYWORD_COLLECTIVES",
+    "quantities": "KEYWORD_QUANTITIES",
+    "intrinsic-modes": "KEYWORD_INTRINSIC_MODES",
+    "extrinsic-modes": "KEYWORD_EXTRINSIC_MODES",
+    "qualities": "KEYWORD_QUALITIES",
+    "events": "KEYWORD_EVENTS",
+    "situations": "KEYWORD_SITUATIONS",
+    "types": "KEYWORD_TYPES",
+    "abstract-individuals": "KEYWORD_ABSTRACT_INDIVIDUALS",
 }
 
 # OntoUML - Estereótipos de classe
@@ -110,6 +113,13 @@ data_types = {
     "Date": "TYPE_DATE",
     "Time": "TYPE_TIME",
     "Datetime": "TYPE_DATETIME",
+    # Lowercase aliases for convenience
+    "number": "TYPE_NUMBER",
+    "string": "TYPE_STRING",
+    "boolean": "TYPE_BOOLEAN",
+    "date": "TYPE_DATE",
+    "time": "TYPE_TIME",
+    "datetime": "TYPE_DATETIME",
 }
 
 meta_attributes = {

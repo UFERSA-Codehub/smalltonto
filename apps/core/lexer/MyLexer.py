@@ -1,9 +1,9 @@
 import ply.lex as lex
 
 try:
-    from .TokenType import reserved, literals, tokens, get_token_category
+    from .TokenType import get_token_category, literals, reserved, tokens
 except ImportError:
-    from TokenType import reserved, literals, tokens, get_token_category
+    from TokenType import get_token_category, literals, reserved, tokens
 
 class MyLexer:
     """
@@ -66,11 +66,11 @@ class MyLexer:
         return tokens
 
     def __iter__(self):
-        """Allow iteration over tokens."""
+        """Permite iteração sobre os tokens."""
         return self
 
     def __next__(self):
-        """Get next token for iteration protocol."""
+        """Retorna o próximo token para o protocolo de iteração."""
         tok = self.token()
         if tok is None:
             raise StopIteration
@@ -101,9 +101,9 @@ class MyLexer:
         return ' ' * (column -1) + '^'
 
 
-    #Token rules (o parâmetro 'self' é necessário para todos)
+    #Regras de tokens (o parâmetro 'self' é necessário para todos)
 
-    # Token regexes (longest first)
+    # Expressões regulares de tokens (mais longas primeiro)
     t_ASSOCIATIONLR = r"<-->"
     t_ASSOCIATIONL  = r"<--"
     t_ASSOCIATIONR  = r"-->"
@@ -117,14 +117,17 @@ class MyLexer:
 
     def t_STRING(self, t):
         r'"([^\\\n]|(\\.))*?"'
-        t.value = t.value[1:-1]  # Remove quotes
+        t.value = t.value[1:-1]  # Remove as aspas
         return t
 
     def t_NUMBER(self, t):
         r"\d+"
         t.value = int(t.value)
         return t
-
+    '''
+    Novos tipos: iniciando com letra, sem números, sem sublinhado e terminando com a subcadeia
+    “DataType”. Exemplo: CPFDataType, PhoneNumberDataType.
+    '''
     def t_NEW_DATATYPE(self, t):
         r"[a-zA-Z][a-zA-Z]*DataType"
         t.type = reserved.get(t.value, "NEW_DATATYPE")
@@ -136,40 +139,57 @@ class MyLexer:
         t.type = reserved.get(t.value, "IDENTIFIER")
         t.category = get_token_category(t.type)
         return t
+    
+    def t_INTRINSIC_MODES(self, t):
+        r"intrinsic-modes"
+        t.type = reserved.get(t.value, "IDENTIFIER")
+        t.category = get_token_category(t.type)
+        return t
+    
+    def t_EXTRINSIC_MODES(self, t):
+        r"extrinsic-modes"
+        t.type = reserved.get(t.value, "IDENTIFIER")
+        t.category = get_token_category(t.type)
+        return t
+    
+    def t_ABSTRACT_INDIVIDUALS(self, t):
+        r"abstract-individuals"
+        t.type = reserved.get(t.value, "IDENTIFIER")
+        t.category = get_token_category(t.type)
+        return t
+
+    '''
+    Convenção para nomes de instâncias: iniciando com letra minúscula, podendo ter sublinhado
+    como subcadeia própria e terminando com algum número inteiro. Exemplos: planeta1, planeta2,
+    pizza03, pizza123. Nomes de classe como SubclassName1 NÃO são instâncias (começam com maiúscula).
+    '''
+    def t_INSTANCE_NAME(self, t):
+        r"[a-z][a-zA-Z_]*[0-9]+"
+        t.type = "INSTANCE_NAME"  # Nomes de instâncias nunca são palavras reservadas (terminam com números)
+        t.category = get_token_category("INSTANCE_NAME")
+        return t
 
     '''
     Convenção para nomes de classes: iniciando com letra maiúscula, seguida por qualquer
-    combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. Exemplos:
-    Person, Child, Church, University, Second_Baptist_Church.
+    combinação de letras/números, ou tendo sublinhado como subcadeia própria. Exemplos:
+    Person, Child, Church, University, Second_Baptist_Church, SubclassName1.
     '''
-    # def t_CLASS_NAME(self, t):
-    #     r"[A-Z][a-zA-Z_]*"
-    #     t.type = reserved.get(t.value, "CLASS_NAME")
-    #     t.category = get_token_category(t.type)
-    #     return t
-
+    def t_CLASS_NAME(self, t):
+        r"[A-Z][a-zA-Z0-9_]*"
+        t.type = reserved.get(t.value, "CLASS_NAME")
+        t.category = get_token_category(t.type)
+        return t
 
     '''
     Convenção para nomes de relações: começando com letra minúscula, seguida por qualquer
     combinação de letras, ou tendo sublinhado como subcadeia própria, sem números. Exemplos:
     has, hasParent, has_parent, isPartOf, is_part_of
     '''
-    # def t_RELATION_NAME(self, t):
-    #     r"[a-z][a-zA-Z_]*"
-    #     t.type = reserved.get(t.value, "RELATION_NAME")
-    #     t.category = get_token_category(t.type)
-    #     return t
-
-
-    '''
-    Convenção para nomes de instâncias: iniciando com qualquer letra, podendo ter o sublinhado
-    como subcadeia própria e terminando com algum número inteiro. Exemplos: Planeta1, Planeta2,
-    pizza03, pizza123
-    '''
-    # def t_INSTANCE_NAME(self, t):
-    #     r"[a-zA-Z_]+[0-9]+"
-    #     t.category = get_token_category("INSTANCE_NAME")
-    #     return t
+    def t_RELATION_NAME(self, t):
+        r"[a-z][a-zA-Z_]*"
+        t.type = reserved.get(t.value, "RELATION_NAME")
+        t.category = get_token_category(t.type)
+        return t
 
     def t_IDENTIFIER(self, t):
         r"[a-zA-Z_][a-zA-Z0-9_]*"
@@ -179,7 +199,7 @@ class MyLexer:
 
     def t_COMMENT(self, t):
         r"//.*"
-        pass  # Ignore comments
+        pass  # Ignora comentários
 
     def t_newline(self, t):
         r"\n+"
