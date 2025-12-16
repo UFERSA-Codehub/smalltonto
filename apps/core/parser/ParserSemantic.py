@@ -370,6 +370,15 @@ class ParserSemantic:
         self.warnings = []
         self.filename = filename
 
+        # Verifica se AST é válido
+        if ast is None:
+            self.errors.append({
+                "type": "semantic",
+                "message": "AST inválido: não foi possível realizar análise semântica (verifique erros de sintaxe)",
+                "location": {"line": 0, "column": 0}
+            })
+            return self._build_empty_result()
+
         self.package_name = ast.get('package', {}).get('package_name')
         self.imports = [import_def.get('module_name') for import_def in ast.get('imports', [])]
 
@@ -408,6 +417,39 @@ class ParserSemantic:
                 "complete_patterns": len(self.patterns),
                 "incomplete_patterns": len(self.incomplete_patterns),
                 "pattern_counts": self._count_patterns()
+            }
+        }
+
+    def _build_empty_result(self) -> dict:
+        '''
+        Retorna resultado vazio quando AST é inválido.
+        '''
+        return {
+            "ontology": None,
+            "files": [
+                {
+                    "filename": self.filename,
+                    "package": None,
+                    "imports": [],
+                    "symbols": {"classes": [], "relations": [], "gensets": [], "datatypes": [], "enums": []},
+                    "patterns": [],
+                    "incomplete_patterns": [],
+                    "errors": self.errors,
+                    "warnings": []
+                }
+            ],
+            "summary": {
+                "total_patterns": 0,
+                "complete_patterns": 0,
+                "incomplete_patterns": 0,
+                "pattern_counts": {
+                    "Subkind_Pattern": 0,
+                    "Role_Pattern": 0,
+                    "Phase_Pattern": 0,
+                    "Relator_Pattern": 0,
+                    "Mode_Pattern": 0,
+                    "RoleMixin_Pattern": 0
+                }
             }
         }
     
@@ -1111,6 +1153,7 @@ class ParserSemantic:
             phase_name = phase_class.get('class_name')
             specialization = phase_class.get('specialization') or {}
             parents = specialization.get('parents', [])
+            body = phase_class.get('body', [])
             
             # VALIDAÇÃO 1: Phase sem especialização → ERROR
             if not parents:
