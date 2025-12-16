@@ -46,6 +46,9 @@
 - [Unidade 2: Analisador Sintático](#unidade-2-analisador-sintático)
   - [Problema](#problema-1)
   - [Exemplo de Saída](#exemplo-de-saída-1)
+- [Unidade 3: Analisador Semântico](#unidade-3-analisador-semântico)
+  - [Problema](#problema-2)
+  - [Exemplo de Saída](#exemplo-de-saída-2)
 - [Referências](#referências)
 
 ---
@@ -338,13 +341,16 @@ disjoint complete genset Class_Phase_Genset_Name {
 ```
 
 - Relator Pattern
-  - Relations na TONTO podem ser de dois tipos: relações internas ou relações externas;
-  - Relações internas são assim caracterizadas:
+  - O relator é uma classe que representa uma relação materializada entre duas ou mais entidades;
+  - Relações internas (dentro do relator) são assim caracterizadas:
     - São identificadas pela palavra chave "relator", seguida de um IDENTIFICADOR e um corpo entre chaves;
-    - Cada "relation" dentro do corpo do "relator" deve ser encabeçada por uma "@mediation", seguido pelas cardinalidades e o nome da classe relacionada.
-  - Relações externas são assim caracterizadas:
+    - Cada relação dentro do corpo do "relator" deve ser encabeçada por "@mediation", seguido pelas cardinalidades e o nome da classe relacionada;
+    - O relator deve ter pelo menos duas relações "@mediation" para conectar os participantes.
+  - Relações externas (fora do relator) são assim caracterizadas:
     - Devem ser iniciadas pelo estereótipo de relação "@material" seguido pela palavra chave "relation";
-    - 
+    - Conectam as classes que participam do relator, representando a relação de nível material entre elas;
+    - É recomendado (mas não obrigatório) ter uma relação "@material" correspondente ao relator.
+  - Código de exemplo:
 
 ``` 
 package Relator_Pattern
@@ -364,7 +370,15 @@ relator Relator_Name {
 //"relationName" can be replaced by a specific name for the relation
 ```
 - Mode Pattern
-  - Todo mode deve 
+  - Todo mode deve possuir um corpo com relações internas;
+  - O mode deve ser declarado da seguinte forma: ```mode IDENTIFICADOR { ... }```;
+  - Dentro do corpo do mode, devem existir:
+    - Pelo menos uma relação com estereótipo "@characterization", indicando qual classe o mode caracteriza;
+    - Pelo menos uma relação com estereótipo "@externalDependence", indicando dependências externas do mode;
+  - O mode não deve ter especialização (não usa "specializes");
+  - O mode não deve participar de gensets.
+  - Código de exemplo:
+
 ``` 
 package Mode_Pattern
 
@@ -375,8 +389,19 @@ mode Mode_Name1 {
     @characterization [1..*] -- [1] ClassName1
     @externalDependence [1..*] -- [1] ClassName2
 }
+// Mode must have at least one @characterization and one @externalDependence
 ```
+
 - RoleMixin Pattern
+  - O roleMixin é um tipo abstrato que agrupa roles de diferentes kinds;
+  - O roleMixin deve ser declarado da seguinte forma: ```roleMixin IDENTIFICADOR```;
+  - Ao declarar um roleMixin, deve-se implementar um genset para agrupar as roles relacionadas, que possui as seguintes características:
+    - O genset pode ter os modificadores "disjoint" e/ou "complete" (ambos opcionais);
+    - O genset deve ter como atributo "general" o nome do roleMixin;
+    - O genset deve ter como atributo "specifics" as roles que pertencem ao roleMixin;
+  - As roles agrupadas pelo roleMixin devem especializar kinds diferentes (caso contrário, seria apenas um Role Pattern).
+  - Código de exemplo:
+
 ``` 
 package RoleMixin_Pattern
 
@@ -392,7 +417,17 @@ disjoint complete genset RoleMixin_Genset_Name {
     general RoleMixin_Name
     specifics Role_Name1, Role_Name2
 }
+// Roles in a RoleMixin typically come from different kinds
 ```
+
+### Exemplo de Saída
+
+<div align="center">
+  <img src="apps/docs/images/semantic.png" alt="Visualização da Análise Semântica no Viewer" width="800">
+  <p><em>Visualização da Análise Semântica no aplicativo Viewer, mostrando padrões detectados, estereótipos e warnings.</em></p>
+</div>
+
+<p align="right">(<a href="#sumário">voltar ao topo</a>)</p>
 
 
 
