@@ -11,6 +11,20 @@
   min-width: 140px;
   padding: 4px 0;
   font-size: 13px;
+  /* Morph animation */
+  animation: menuMorph 0.15s ease-out;
+  transform-origin: top left;
+}
+
+@keyframes menuMorph {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .node-context-menu__item {
@@ -52,6 +66,20 @@
   max-height: 400px;
   overflow: auto;
   font-size: 13px;
+  /* Morph animation */
+  animation: popupMorph 0.2s ease-out;
+  transform-origin: top left;
+}
+
+@keyframes popupMorph {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .node-details-popup__header {
@@ -151,5 +179,57 @@
 .node-details-popup__empty {
   color: var(--color-text-muted, #888);
   font-style: italic;
+  font-size: 12px;
+}
+
+/* Genset section */
+.node-details-popup__genset-name {
+  font-weight: normal;
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.node-details-popup__genset-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.node-details-popup__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 3px;
+}
+
+.node-details-popup__badge--disjoint {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.node-details-popup__badge--complete {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.node-details-popup__badge--default {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.node-details-popup__subsection-title {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-muted, #888);
+  margin-bottom: 4px;
+  margin-top: 4px;
+}
+
+.node-details-popup__specific {
+  color: var(--color-text-secondary, #555);
+  font-family: inherit;
   font-size: 12px;
 }

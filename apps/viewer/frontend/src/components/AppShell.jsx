@@ -43,6 +43,9 @@ export default function AppShell({ children }) {
 
   // AST Viewer state
   const [selectedAstNode, setSelectedAstNode] = useState(null);
+  
+  // Warning navigation state (for clicking patterns in SummaryPanel)
+  const [focusedWarningFilter, setFocusedWarningFilter] = useState(null);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -350,6 +353,8 @@ export default function AppShell({ children }) {
     setHighlightRequest,
     selectedAstNode,
     setSelectedAstNode,
+    focusedWarningFilter,
+    setFocusedWarningFilter,
     settings,
     updateSetting,
     resetSettings,

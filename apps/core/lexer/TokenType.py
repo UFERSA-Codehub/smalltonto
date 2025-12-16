@@ -184,7 +184,7 @@ tokens = [
     "RELATION_NAME",
     "INSTANCE_NAME",
     "NEW_DATATYPE",
-] + list(reserved.values())
+] + list(set(reserved.values()))
 
 
 def get_keyword_categories():

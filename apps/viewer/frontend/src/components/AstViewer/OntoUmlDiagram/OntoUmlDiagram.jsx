@@ -14,7 +14,7 @@ import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges";
 import { NodeContextMenu, NodeDetailsPopup } from "./menu";
 import { transformAstToOntoUml } from "./utils/astToOntoUml";
-import { useLayout, relayoutWithMeasurements } from "./utils/useLayout";
+import { useLayout, relayoutWithMeasurements, applyDagreLayout } from "./utils/useLayout";
 import "./OntoUmlDiagram.css";
 
 /**
@@ -69,28 +69,19 @@ function MarkerDefinitions() {
  * Displays classes, relators, enums as nodes with appropriate edges.
  */
 export default function OntoUmlDiagram() {
-  const { parseResult, setHighlightRequest } = useApp();
+  const { parseResult, setHighlightRequest, setMode } = useApp();
 
   const [contextMenu, setContextMenu] = useState(null);
   const [detailsPopup, setDetailsPopup] = useState(null);
   
   // Track if we've done the measurement-based relayout
   const hasRelayouted = useRef(false);
-  const lastAstRef = useRef(null);
 
   // Transform AST/semantic data to React Flow nodes and edges
   const { nodes: rawNodes, edges: rawEdges } = transformAstToOntoUml(
     parseResult?.ast,
     parseResult?.semantic
   );
-
-  // Reset relayout flag when AST changes (in effect, not during render)
-  useEffect(() => {
-    if (parseResult?.ast !== lastAstRef.current) {
-      lastAstRef.current = parseResult?.ast;
-      hasRelayouted.current = false;
-    }
-  }, [parseResult?.ast]);
 
   // Apply initial dagre layout to position nodes
   const { layoutedNodes: initialNodes, layoutedEdges: initialEdges } = useLayout(rawNodes, rawEdges, {
@@ -105,6 +96,30 @@ export default function OntoUmlDiagram() {
   // Use React Flow's state management for nodes/edges
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Sync nodes/edges state when parseResult changes
+  // This is needed because useNodesState/useEdgesState only use the initial value once
+  useEffect(() => {
+    // Recompute nodes/edges from the new parseResult
+    const { nodes: newRawNodes, edges: newRawEdges } = transformAstToOntoUml(
+      parseResult?.ast,
+      parseResult?.semantic
+    );
+
+    // Apply layout to position nodes
+    const { layoutedNodes, layoutedEdges } = applyDagreLayout(newRawNodes, newRawEdges, {
+      direction: "TB",
+      nodeSep: 150,
+      rankSep: 180,
+      mediationSpread: 320,
+      enumOffsetY: 200,
+      parentOffsetY: 200,
+    });
+
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    hasRelayouted.current = false;
+  }, [parseResult, setNodes, setEdges]);
 
   // Handle nodes change - detect when measurements are available and relayout
   const handleNodesChange = useCallback((changes) => {
@@ -162,25 +177,19 @@ export default function OntoUmlDiagram() {
     setDetailsPopup(null);
   };
 
-  // Show in code - trigger editor highlight
+  // Show in code - trigger editor highlight and switch to IDE mode
   const handleShowInCode = (node) => {
-    // Extract the class/enum name and find its line number
-    const name = node.data?.name;
-    if (name && parseResult?.ast) {
-      // Search for the definition in AST content
-      const content = parseResult.ast.content || [];
-      for (const item of content) {
-        const itemName =
-          item.class_name || item.enum_name || item.datatype_name;
-        if (itemName === name && item.line !== undefined) {
-          setHighlightRequest({
-            line: item.line,
-            column: item.column || 1,
-            length: name.length,
-          });
-          return;
-        }
-      }
+    const { line, column, name } = node.data || {};
+    
+    // Use line/column directly from node data (already set during transformation)
+    if (line !== undefined) {
+      setHighlightRequest({
+        line,
+        column: column || 1,
+        length: name?.length || 1,
+      });
+      // Switch to IDE mode so the CodeEditor is visible and can handle the highlight
+      setMode("ide");
     }
   };
 

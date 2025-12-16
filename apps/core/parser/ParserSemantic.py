@@ -786,7 +786,8 @@ class ParserSemantic:
         
         for role_class in all_roles:
             role_name = role_class.get('class_name')
-            parents = role_class.get('specialization', {}).get('parents', [])
+            specialization = role_class.get('specialization') or {}
+            parents = specialization.get('parents', [])
             body = role_class.get('body')
             
             # VALIDAÇÃO 1: Role sem especialização → ERROR
@@ -1108,8 +1109,8 @@ class ParserSemantic:
         
         for phase_class in all_phases:
             phase_name = phase_class.get('class_name')
-            parents = phase_class.get('specialization', {}).get('parents', [])
-            body = phase_class.get('body')
+            specialization = phase_class.get('specialization') or {}
+            parents = specialization.get('parents', [])
             
             # VALIDAÇÃO 1: Phase sem especialização → ERROR
             if not parents:

@@ -3,9 +3,9 @@ export const light = {
   // Primary colors from specification
   text: "#060e0f",
   background: "#f3fafc",
-  primary: "#2cc1d8",
+  primary: "#0e8a9a",
   secondary: "#8ce3f2",
-  accent: "#4bddf7",
+  accent: "#1a9fb2",
 
   // Derived shades for UI elements
   textSecondary: "#1a3035",
@@ -24,18 +24,18 @@ export const light = {
   // Semantic colors
   red: "#d32f2f",
   green: "#2e7d32",
-  yellow: "#f9a825",
+  yellow: "#c77c00",
   orange: "#ef6c00",
-  blue: "#1976d2",
+  blue: "#0d47a1",
   purple: "#7b1fa2",
   pink: "#c2185b",
   teal: "#00796b",
-  cyan: "#0097a7",
+  cyan: "#00695c",
 
   // Code syntax colors
   mauve: "#7b1fa2",
   peach: "#ef6c00",
-  sky: "#0097a7",
+  sky: "#00695c",
   sapphire: "#0288d1",
   lavender: "#5c6bc0",
 };
@@ -66,7 +66,7 @@ export const dark = {
   // Semantic colors
   red: "#ef5350",
   green: "#66bb6a",
-  yellow: "#f5b942",
+  yellow: "#d4940a",
   orange: "#ffa726",
   blue: "#42a5f5",
   purple: "#ab47bc",

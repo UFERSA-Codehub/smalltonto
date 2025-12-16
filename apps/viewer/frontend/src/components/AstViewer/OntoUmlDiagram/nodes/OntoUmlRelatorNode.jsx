@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Handle, Position, useNodeId, useStore } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import "./nodes.css";
 
 /**
@@ -7,20 +7,15 @@ import "./nodes.css";
  * Same structure as class node but with relator-specific styling.
  */
 function OntoUmlRelatorNode({ data }) {
-  const { name, stereotype = "relator", attributes = [], isAbstract = false } = data;
+  const { name, stereotype = "relator", attributes = [], isAbstract = false, gensetInfo } = data;
   const attrCount = attributes.length;
-  const nodeId = useNodeId();
-  const node = useStore((s) => s.nodeLookup.get(nodeId));
-  const posY = node?.position?.y;
-  const height = node?.measured?.height;
+  const specificCount = gensetInfo?.specifics?.length || 0;
+
+  // Determine if we have any indicators to show
+  const hasIndicators = attrCount > 0 || gensetInfo;
 
   return (
     <div className="ontouml-node ontouml-node--relator ontouml-node--clickable">
-      {/* Debug overlay */}
-      <div style={{ position: 'absolute', top: -20, left: 0, fontSize: 10, background: 'lime', padding: '2px 4px' }}>
-        Y={posY} H={height} C={posY + height/2}
-      </div>
-
       {/* Bidirectional handles - each position has both source and target */}
       <Handle type="target" position={Position.Top} id="top-target" />
       <Handle type="source" position={Position.Top} id="top-source" />
@@ -38,10 +33,20 @@ function OntoUmlRelatorNode({ data }) {
 
       <div className="ontouml-node__name">{name}</div>
 
-      {attrCount > 0 && (
-        <div className="ontouml-node__attrs-indicator">
-          <span className="ontouml-node__attrs-indicator-icon">A</span>
-          <span>{attrCount}</span>
+      {hasIndicators && (
+        <div className="ontouml-node__indicators">
+          {attrCount > 0 && (
+            <span className="ontouml-node__indicator ontouml-node__indicator--attrs" title={`${attrCount} attribute${attrCount > 1 ? 's' : ''}`}>
+              <span className="ontouml-node__indicator-icon">A</span>
+              <span>{attrCount}</span>
+            </span>
+          )}
+          {gensetInfo && (
+            <span className="ontouml-node__indicator ontouml-node__indicator--genset" title={`General in genset with ${specificCount} specific${specificCount > 1 ? 's' : ''}`}>
+              <span className="ontouml-node__indicator-icon">G</span>
+              <span>{specificCount}</span>
+            </span>
+          )}
         </div>
       )}
 
