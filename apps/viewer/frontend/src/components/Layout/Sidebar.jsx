@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useApp } from "../AppShell";
 import FileTree from "../FileExplorer/FileTree";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -14,6 +14,7 @@ export default function Sidebar() {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef(null);
+  const isResizingRef = useRef(false);
 
   const toggleCollapse = () => {
     setIsCollapsed((prev) => !prev);
@@ -25,42 +26,45 @@ export default function Sidebar() {
 
   const handleMouseDown = (e) => {
     e.preventDefault();
+    isResizingRef.current = true;
     setIsResizing(true);
   };
 
-  const handleMouseMove = useCallback(
-    (e) => {
-      if (!isResizing) return;
-
-      const sidebarRect = sidebarRef.current?.getBoundingClientRect();
-      if (!sidebarRect) return;
-
-      const newWidth = e.clientX - sidebarRect.left;
-      const clampedWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth));
-      setWidth(clampedWidth);
-    },
-    [isResizing]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
+  // Resize handlers using refs to avoid stale closures
   useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    }
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current || !sidebarRef.current) return;
+      const sidebarRect = sidebarRef.current.getBoundingClientRect();
+      const newWidth = e.clientX - sidebarRect.left;
+      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        setIsResizing(false);
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  // Handle cursor style during resize
+  useEffect(() => {
+    if (isResizing) {
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    } else {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-    };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+    }
+  }, [isResizing]);
 
   const sidebarStyle = isCollapsed
     ? { width: "40px", minWidth: "40px" }

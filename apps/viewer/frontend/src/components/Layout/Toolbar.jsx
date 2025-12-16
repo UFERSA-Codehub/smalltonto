@@ -37,7 +37,7 @@ export default function Toolbar() {
             className={`toolbar__mode-btn ${mode === "ast" ? "toolbar__mode-btn--active" : ""}`}
             onClick={() => setMode("ast")}
           >
-            AST
+            Analysis
           </button>
         </div>
       </div>

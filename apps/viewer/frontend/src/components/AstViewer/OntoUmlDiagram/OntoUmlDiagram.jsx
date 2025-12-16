@@ -1,178 +1,279 @@
-import { useMemo, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ReactFlow,
   Controls,
-  MiniMap,
   Background,
+  BackgroundVariant,
   useNodesState,
   useEdgesState,
-  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { nodeTypes } from "./nodes/OntoUmlNodes";
-import { edgeTypes } from "./edges/OntoUmlEdges";
+import { useApp } from "../../AppShell";
+import { nodeTypes } from "./nodes";
+import { edgeTypes } from "./edges";
+import { NodeContextMenu, NodeDetailsPopup } from "./menu";
 import { transformAstToOntoUml } from "./utils/astToOntoUml";
-import { useElkLayout } from "./utils/useElkLayout";
+import { useLayout, relayoutWithMeasurements, applyDagreLayout } from "./utils/useLayout";
 import "./OntoUmlDiagram.css";
 
-function OntoUmlDiagramInner({ 
-  ast, 
-  selectedNodeId, 
-  onNodeSelect, 
-  onExternalNodeClick,
-  attributeDisplay,
-  showExternalClasses 
-}) {
-  const { fitView, setCenter } = useReactFlow();
-
-  // Transform AST to OntoUML React Flow format
-  const { nodes: rawNodes, edges: rawEdges } = useMemo(() => {
-    return transformAstToOntoUml(ast, { showExternalClasses });
-  }, [ast, showExternalClasses]);
-
-  // Apply ELK auto-layout
-  const { nodes: layoutedNodes, edges: layoutedEdges } = useElkLayout(rawNodes, rawEdges);
-
-  // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);
-
-  // Update nodes when layout changes
-  useEffect(() => {
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-  }, [layoutedNodes, layoutedEdges, setNodes, setEdges]);
-
-  // Fit view when AST changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fitView({ padding: 0.2, duration: 300 });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [ast, fitView]);
-
-  // Focus on selected node
-  useEffect(() => {
-    if (selectedNodeId) {
-      const node = nodes.find((n) => n.id === selectedNodeId);
-      if (node) {
-        setCenter(node.position.x + 100, node.position.y + 50, {
-          zoom: 1.2,
-          duration: 300,
-        });
-      }
-    }
-  }, [selectedNodeId, nodes, setCenter]);
-
-  // Handle node click
-  const handleNodeClick = useCallback(
-    (event, node) => {
-      // If it's a ghost/external node and we have a handler, trigger navigation
-      if (node.data?.isExternal && onExternalNodeClick) {
-        onExternalNodeClick(node.data.sourceModule);
-        return;
-      }
-      
-      if (onNodeSelect) {
-        onNodeSelect(node.id);
-      }
-    },
-    [onNodeSelect, onExternalNodeClick]
-  );
-
-  // Update selected state on nodes and inject attributeDisplay
-  const nodesWithSelection = useMemo(() => {
-    return nodes.map((node) => ({
-      ...node,
-      selected: node.id === selectedNodeId,
-      data: {
-        ...node.data,
-        attributeDisplay: attributeDisplay || "shown",
-      },
-    }));
-  }, [nodes, selectedNodeId, attributeDisplay]);
-
+/**
+ * SVG marker definitions for custom arrowheads.
+ */
+function MarkerDefinitions() {
   return (
-    <ReactFlow
-      nodes={nodesWithSelection}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onNodeClick={handleNodeClick}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      fitView
-      fitViewOptions={{ padding: 0.2 }}
-      minZoom={0.1}
-      maxZoom={2}
-      nodesDraggable={true}
-      nodesConnectable={false}
-      elementsSelectable={true}
-      proOptions={{ hideAttribution: true }}
-    >
-      <Controls showInteractive={false} />
-      <MiniMap
-        nodeColor={(node) => {
-          // Ghost nodes get a distinct color
-          if (node.data?.isExternal) {
-            return "#e0e0e0";
-          }
-          // Return OntoUML stereotype colors
-          const stereotype = node.data?.stereotype;
-          switch (stereotype) {
-            case "kind":
-              return "#FFCDD2";
-            case "subkind":
-            case "role":
-            case "phase":
-              return "#F8BBD0";
-            case "relator":
-              return "#C8E6C9";
-            case "category":
-            case "roleMixin":
-            case "mixin":
-            case "phaseMixin":
-              return "#FFFFFF";
-            case "collective":
-              return "#E1F5FE";
-            case "quality":
-            case "mode":
-              return "#B3E5FC";
-            case "datatype":
-              return "#FFF9C4";
-            case "enum":
-              return "#F5F5F5";
-            default:
-              return "#E0E0E0";
-          }
-        }}
-        maskColor="rgba(0, 0, 0, 0.1)"
-        style={{ backgroundColor: "var(--color-background-secondary)" }}
-      />
-      <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
-    </ReactFlow>
+    <svg style={{ position: "absolute", width: 0, height: 0 }}>
+      <defs>
+        {/* Generalization arrow - hollow triangle pointing in edge direction */}
+        <marker
+          id="generalization-arrow"
+          viewBox="0 0 20 20"
+          refX="20"
+          refY="10"
+          markerWidth="12"
+          markerHeight="12"
+          orient="auto"
+        >
+          <path
+            d="M 0 0 L 20 10 L 0 20 z"
+            fill="white"
+            stroke="black"
+            strokeWidth="2"
+          />
+        </marker>
+
+        {/* Dependency arrow - open arrow */}
+        <marker
+          id="dependency-arrow"
+          viewBox="0 0 20 20"
+          refX="18"
+          refY="10"
+          markerWidth="10"
+          markerHeight="10"
+          orient="auto-start-reverse"
+        >
+          <path
+            d="M 0 0 L 20 10 L 0 20"
+            fill="none"
+            stroke="#666"
+            strokeWidth="2"
+          />
+        </marker>
+      </defs>
+    </svg>
   );
 }
 
-export default function OntoUmlDiagram({ 
-  ast, 
-  selectedNodeId, 
-  onNodeSelect, 
-  onExternalNodeClick,
-  attributeDisplay,
-  showExternalClasses = true
-}) {
+/**
+ * OntoUML Diagram component using React Flow.
+ * Displays classes, relators, enums as nodes with appropriate edges.
+ */
+export default function OntoUmlDiagram() {
+  const { parseResult, setHighlightRequest, setMode } = useApp();
+
+  const [contextMenu, setContextMenu] = useState(null);
+  const [detailsPopup, setDetailsPopup] = useState(null);
+  
+  // Track if we've done the measurement-based relayout
+  const hasRelayouted = useRef(false);
+
+  // Transform AST/semantic data to React Flow nodes and edges
+  const { nodes: rawNodes, edges: rawEdges } = transformAstToOntoUml(
+    parseResult?.ast,
+    parseResult?.semantic
+  );
+
+  // Apply initial dagre layout to position nodes
+  const { layoutedNodes: initialNodes, layoutedEdges: initialEdges } = useLayout(rawNodes, rawEdges, {
+    direction: "TB",
+    nodeSep: 150,
+    rankSep: 180,
+    mediationSpread: 320,
+    enumOffsetY: 200,
+    parentOffsetY: 200,
+  });
+
+  // Use React Flow's state management for nodes/edges
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Sync nodes/edges state when parseResult changes
+  // This is needed because useNodesState/useEdgesState only use the initial value once
+  useEffect(() => {
+    // Recompute nodes/edges from the new parseResult
+    const { nodes: newRawNodes, edges: newRawEdges } = transformAstToOntoUml(
+      parseResult?.ast,
+      parseResult?.semantic
+    );
+
+    // Apply layout to position nodes
+    const { layoutedNodes, layoutedEdges } = applyDagreLayout(newRawNodes, newRawEdges, {
+      direction: "TB",
+      nodeSep: 150,
+      rankSep: 180,
+      mediationSpread: 320,
+      enumOffsetY: 200,
+      parentOffsetY: 200,
+    });
+
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    hasRelayouted.current = false;
+  }, [parseResult, setNodes, setEdges]);
+
+  // Handle nodes change - detect when measurements are available and relayout
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes);
+    
+    // Check if this is a dimensions change (React Flow measured the nodes)
+    const hasDimensionChange = changes.some(c => c.type === 'dimensions');
+    
+    if (hasDimensionChange && !hasRelayouted.current) {
+      // Get current nodes with measurements from React Flow
+      setNodes(currentNodes => {
+        // Check if all nodes have measurements
+        const allMeasured = currentNodes.every(n => n.measured?.height);
+        
+        if (allMeasured) {
+          hasRelayouted.current = true;
+          
+          // Re-run layout with actual measurements
+          const { nodes: relayoutedNodes, edges: relayoutedEdges } = relayoutWithMeasurements(
+            currentNodes,
+            rawEdges,
+            {
+              mediationSpread: 320,
+              enumOffsetY: 200,
+              parentOffsetY: 200,
+            }
+          );
+          
+          // Update edges too
+          setEdges(relayoutedEdges);
+          
+          console.log("[Relayout] Applied measurement-based layout");
+          
+          return relayoutedNodes;
+        }
+        
+        return currentNodes;
+      });
+    }
+  }, [onNodesChange, rawEdges, setNodes, setEdges]);
+
+  // Handle node click - show context menu
+  const handleNodeClick = (event, node) => {
+    event.stopPropagation();
+    setDetailsPopup(null); // Close any open details
+    setContextMenu({
+      node,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  };
+
+  // Handle pane click - close menus
+  const handlePaneClick = () => {
+    setContextMenu(null);
+    setDetailsPopup(null);
+  };
+
+  // Show in code - trigger editor highlight and switch to IDE mode
+  const handleShowInCode = (node) => {
+    const { line, column, name } = node.data || {};
+    
+    // Use line/column directly from node data (already set during transformation)
+    if (line !== undefined) {
+      setHighlightRequest({
+        line,
+        column: column || 1,
+        length: name?.length || 1,
+      });
+      // Switch to IDE mode so the CodeEditor is visible and can handle the highlight
+      setMode("ide");
+    }
+  };
+
+  // Show details popup
+  const handleShowDetails = (node) => {
+    // Position popup near where context menu was
+    const position = contextMenu?.position || { x: 200, y: 200 };
+    setDetailsPopup({
+      node,
+      position: { x: position.x + 10, y: position.y + 10 },
+    });
+  };
+
+  // Close context menu
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  // Close details popup
+  const handleCloseDetailsPopup = () => {
+    setDetailsPopup(null);
+  };
+
+  // Show placeholder if no data
+  if (!nodes.length) {
+    return (
+      <div className="ontouml-diagram ontouml-diagram--placeholder">
+        <div className="ontouml-diagram__placeholder-content">
+          <span>No diagram data available</span>
+          <span className="ontouml-diagram__placeholder-hint">
+            Open a .tonto file to see the OntoUML diagram
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="ontouml-diagram">
-      <OntoUmlDiagramInner
-        ast={ast}
-        selectedNodeId={selectedNodeId}
-        onNodeSelect={onNodeSelect}
-        onExternalNodeClick={onExternalNodeClick}
-        attributeDisplay={attributeDisplay}
-        showExternalClasses={showExternalClasses}
-      />
+      <MarkerDefinitions />
+
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={true}
+        fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: 1.5 }}
+        minZoom={0.1}
+        maxZoom={2}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+        }}
+      >
+        <Controls showInteractive={false} />
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+      </ReactFlow>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <NodeContextMenu
+          node={contextMenu.node}
+          position={contextMenu.position}
+          onShowInCode={handleShowInCode}
+          onShowDetails={handleShowDetails}
+          onClose={handleCloseContextMenu}
+        />
+      )}
+
+      {/* Details popup */}
+      {detailsPopup && (
+        <NodeDetailsPopup
+          node={detailsPopup.node}
+          position={detailsPopup.position}
+          onClose={handleCloseDetailsPopup}
+        />
+      )}
     </div>
   );
 }

@@ -74,7 +74,7 @@ const tontoLanguage = StreamLanguage.define({
       return "variableName";
     }
 
-    if (stream.match(/[{}()\[\];,.:@]/)) {
+    if (stream.match(/[{}()[\];,.:@]/)) {
       return "punctuation";
     }
 
@@ -135,10 +135,16 @@ function createEditorTheme(theme) {
       padding: "0 8px 0 16px",
     },
     ".cm-error-line": {
-      backgroundColor: `${theme.error}15`,
+      backgroundColor: `${theme.error}28`,
     },
     ".cm-error-line-gutter": {
-      backgroundColor: `${theme.error}25`,
+      backgroundColor: `${theme.error}38`,
+    },
+    ".cm-warning-line": {
+      backgroundColor: `${theme.warning}22`,
+    },
+    ".cm-warning-line-gutter": {
+      backgroundColor: `${theme.warning}32`,
     },
     ".cm-token-highlight": {
       backgroundColor: `${theme.primary}35`,
@@ -148,15 +154,20 @@ function createEditorTheme(theme) {
       backgroundColor: `${theme.error}40`,
       borderRadius: "2px",
     },
+    ".cm-warning-highlight": {
+      backgroundColor: `${theme.warning}40`,
+      borderRadius: "2px",
+    },
   });
 }
 
 const setErrorLinesEffect = StateEffect.define();
+const setWarningLinesEffect = StateEffect.define();
 const setHighlightEffect = StateEffect.define();
 const clearHighlightEffect = StateEffect.define();
 
 const errorLineDecoration = Decoration.line({ class: "cm-error-line" });
-const errorLineGutterDecoration = Decoration.line({ class: "cm-error-line-gutter" });
+const warningLineDecoration = Decoration.line({ class: "cm-warning-line" });
 
 const errorLinesField = StateField.define({
   create() {
@@ -181,6 +192,29 @@ const errorLinesField = StateField.define({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+const warningLinesField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setWarningLinesEffect)) {
+        const { warningLines, doc } = effect.value;
+        const decos = [];
+        for (const lineNum of warningLines) {
+          if (lineNum >= 1 && lineNum <= doc.lines) {
+            const line = doc.line(lineNum);
+            decos.push(warningLineDecoration.range(line.from));
+          }
+        }
+        return Decoration.set(decos, true);
+      }
+    }
+    return decorations.map(tr.changes);
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 const highlightField = StateField.define({
   create() {
     return Decoration.none;
@@ -189,7 +223,12 @@ const highlightField = StateField.define({
     for (const effect of tr.effects) {
       if (effect.is(setHighlightEffect)) {
         const { from, to, type } = effect.value;
-        const className = type === "error" ? "cm-error-highlight" : "cm-token-highlight";
+        let className = "cm-token-highlight";
+        if (type === "error") {
+          className = "cm-error-highlight";
+        } else if (type === "warning") {
+          className = "cm-warning-highlight";
+        }
         const mark = Decoration.mark({ class: className });
         return Decoration.set([mark.range(from, to)]);
       }
@@ -221,6 +260,55 @@ export default function CodeEditor() {
   const debounceRef = useRef(null);
   const highlightTimeoutRef = useRef(null);
   const tokenSyncDebounceRef = useRef(null);
+  const lastSyncedContentRef = useRef(null); // Track content to detect external changes
+
+  /**
+   * Apply highlight to the editor at specified location.
+   * Extracted as a helper so it can be called both from the highlight effect
+   * and after editor initialization (to handle pending requests).
+   */
+  const applyHighlight = useCallback((request) => {
+    if (!viewRef.current || !request) return false;
+
+    const { line, column, length, type } = request;
+    const doc = viewRef.current.state.doc;
+
+    if (line < 1 || line > doc.lines) {
+      return false;
+    }
+
+    const lineInfo = doc.line(line);
+    const lineLength = lineInfo.to - lineInfo.from;
+
+    const safeColumn = Math.max(1, Math.min(column || 1, lineLength + 1));
+    const from = Math.min(lineInfo.from + (safeColumn - 1), lineInfo.to);
+    const to = Math.min(from + (length || 1), lineInfo.to);
+
+    viewRef.current.dispatch({
+      selection: { anchor: from, head: to },
+      scrollIntoView: true,
+      effects: setHighlightEffect.of({ from, to, type }),
+    });
+
+    viewRef.current.focus();
+
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+    }
+
+    const shouldKeepHighlight = settings.keepTokenHighlight && type === "token";
+    if (!shouldKeepHighlight) {
+      highlightTimeoutRef.current = setTimeout(() => {
+        if (viewRef.current) {
+          viewRef.current.dispatch({
+            effects: clearHighlightEffect.of(null),
+          });
+        }
+      }, 1500);
+    }
+
+    return true;
+  }, [settings.keepTokenHighlight]);
 
   const debouncedAutoAction = useCallback(
     (content, path) => {
@@ -262,6 +350,8 @@ export default function CodeEditor() {
     (update) => {
       if (update.docChanged && activeTab) {
         const newContent = update.state.doc.toString();
+        // Track that this content came from the editor (not external)
+        lastSyncedContentRef.current = newContent;
         updateTabContent(activeTab.path, newContent);
         
         if (activeTab.name.endsWith(".tonto") && (settings.autoSaveToDisk || settings.autoSaveToReparse)) {
@@ -319,51 +409,30 @@ export default function CodeEditor() {
         doc: viewRef.current.state.doc,
       }),
     });
-  }, [parseResult]);
 
-  useEffect(() => {
-    if (!viewRef.current || !highlightRequest) return;
-
-    const { line, column, length, type } = highlightRequest;
-    const doc = viewRef.current.state.doc;
-
-    if (line < 1 || line > doc.lines) {
-      setHighlightRequest(null);
-      return;
-    }
-
-    const lineInfo = doc.line(line);
-    const lineLength = lineInfo.to - lineInfo.from;
-    
-    const safeColumn = Math.max(1, Math.min(column || 1, lineLength + 1));
-    const from = Math.min(lineInfo.from + (safeColumn - 1), lineInfo.to);
-    const to = Math.min(from + (length || 1), lineInfo.to);
+    // Update warning line highlights
+    const warningLines = (parseResult.warnings || [])
+      .filter((w) => typeof w.line === "number" && w.line > 0)
+      .map((w) => w.line);
 
     viewRef.current.dispatch({
-      selection: { anchor: from, head: to },
-      scrollIntoView: true,
-      effects: setHighlightEffect.of({ from, to, type }),
+      effects: setWarningLinesEffect.of({
+        warningLines,
+        doc: viewRef.current.state.doc,
+      }),
     });
+  }, [parseResult]);
 
-    viewRef.current.focus();
-
-    if (highlightTimeoutRef.current) {
-      clearTimeout(highlightTimeoutRef.current);
-    }
+  // Handle highlight requests (e.g., from "Show in Code" in diagram)
+  useEffect(() => {
+    if (!highlightRequest) return;
     
-    const shouldKeepHighlight = settings.keepTokenHighlight && type === "token";
-    if (!shouldKeepHighlight) {
-      highlightTimeoutRef.current = setTimeout(() => {
-        if (viewRef.current) {
-          viewRef.current.dispatch({
-            effects: clearHighlightEffect.of(null),
-          });
-        }
-      }, 1500);
+    // Try to apply highlight - if editor isn't ready yet, it will be handled
+    // by the editor initialization effect
+    if (applyHighlight(highlightRequest)) {
+      setHighlightRequest(null);
     }
-
-    setHighlightRequest(null);
-  }, [highlightRequest, setHighlightRequest, settings.keepTokenHighlight]);
+  }, [highlightRequest, setHighlightRequest, applyHighlight]);
 
   useEffect(() => {
     if (!editorRef.current || !activeTab) return;
@@ -387,6 +456,7 @@ export default function CodeEditor() {
         syntaxHighlighting(highlightStyle),
         editorTheme,
         errorLinesField,
+        warningLinesField,
         highlightField,
         keymap.of([
           ...defaultKeymap,
@@ -416,6 +486,31 @@ export default function CodeEditor() {
       });
     }
 
+    // Set initial warning lines
+    if (parseResult?.warnings) {
+      const warningLines = parseResult.warnings
+        .filter((w) => w.line)
+        .map((w) => w.line);
+
+      viewRef.current.dispatch({
+        effects: setWarningLinesEffect.of({
+          warningLines,
+          doc: viewRef.current.state.doc,
+        }),
+      });
+    }
+
+    // Process any pending highlight request that arrived before editor was ready
+    // (e.g., from "Show in Code" in diagram while in AST mode)
+    if (highlightRequest) {
+      // Use setTimeout to ensure the editor is fully rendered before applying highlight
+      setTimeout(() => {
+        if (applyHighlight(highlightRequest)) {
+          setHighlightRequest(null);
+        }
+      }, 0);
+    }
+
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
@@ -431,7 +526,30 @@ export default function CodeEditor() {
         viewRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab?.path, theme]);
+
+  // Sync external content changes to the editor (e.g., from "Implement" button)
+  useEffect(() => {
+    if (!viewRef.current || !activeTab) return;
+
+    const currentEditorContent = viewRef.current.state.doc.toString();
+    const tabContent = activeTab.content;
+
+    // If content differs and it's not from our last sync (external change)
+    if (tabContent !== currentEditorContent && tabContent !== lastSyncedContentRef.current) {
+      // Update the editor with the new content
+      viewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: currentEditorContent.length,
+          insert: tabContent,
+        },
+      });
+      // Track this as synced
+      lastSyncedContentRef.current = tabContent;
+    }
+  }, [activeTab?.content, activeTab]);
 
   useEffect(() => {
     if (viewRef.current) {
@@ -440,7 +558,7 @@ export default function CodeEditor() {
     return () => {
       delete window.__tontoEditorView;
     };
-  }, [viewRef.current]);
+  }, [activeTab?.path, theme]);
 
   if (!activeTab) return null;
 

@@ -77,6 +77,43 @@
   overflow: auto;
   padding: 16px;
   background: var(--color-background);
+  display: flex;
+  flex-direction: column;
+}
+
+/* JSON toggle buttons */
+.ast-viewer__json-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.ast-viewer__json-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ast-viewer__json-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.ast-viewer__json-btn--active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg, rgba(59, 130, 246, 0.1));
+  border-color: var(--color-primary);
+}
+
+.ast-viewer__json-btn--active:hover {
+  background: var(--color-primary-bg, rgba(59, 130, 246, 0.15));
 }
 
 .ast-viewer__raw-json pre {
@@ -87,4 +124,6 @@
   color: var(--color-text);
   white-space: pre-wrap;
   word-wrap: break-word;
+  flex: 1;
+  overflow: auto;
 }

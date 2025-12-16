@@ -7,7 +7,7 @@ export default function TokenList({ tokens }) {
   const listRef = useRef(null);
   const selectedRowRef = useRef(null);
 
-  const handleTokenClick = (token, index) => {
+  const handleTokenClick = (token) => {
     setHighlightRequest({
       line: token.line,
       column: token.column,
@@ -63,7 +63,7 @@ export default function TokenList({ tokens }) {
               key={index}
               ref={index === selectedTokenIndex ? selectedRowRef : null}
               className={`token-list__row ${index === selectedTokenIndex ? "token-list__row--selected" : ""}`}
-              onClick={() => handleTokenClick(token, index)}
+              onClick={() => handleTokenClick(token)}
               title={`Click to highlight in editor`}
             >
               <td className="token-list__type">{token.type}</td>

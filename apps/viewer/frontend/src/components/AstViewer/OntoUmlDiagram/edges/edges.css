@@ -1,0 +1,55 @@
+/* OntoUML Edge Styles */
+
+/* Base edge label styles */
+.ontouml-edge-label {
+  font-family: inherit;
+  font-size: 11px;
+  background: var(--color-background, #fff);
+  padding: 2px 6px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.ontouml-edge-label__stereotype {
+  display: block;
+  text-align: center;
+  color: #333;
+}
+
+.ontouml-edge-label__name {
+  display: block;
+  text-align: center;
+  font-weight: 500;
+  color: #000;
+}
+
+/* Genset label (disjoint, complete) */
+.ontouml-edge-label--genset {
+  font-size: 10px;
+  font-style: italic;
+  color: #555;
+  background: transparent;
+  padding: 0;
+}
+
+/* Cardinality labels */
+.ontouml-edge-cardinality {
+  font-family: inherit;
+  font-size: 10px;
+  fill: #333;
+  pointer-events: none;
+}
+
+/* Cardinality labels for EdgeLabelRenderer (HTML-based) */
+.ontouml-edge-cardinality-label {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  color: #333;
+  background: white;
+  padding: 1px 4px;
+  border-radius: 2px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  pointer-events: none;
+}

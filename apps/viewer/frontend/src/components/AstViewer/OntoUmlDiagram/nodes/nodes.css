@@ -1,0 +1,198 @@
+/* OntoUML Node Styles */
+
+/* Base node styles */
+.ontouml-node {
+  font-family: inherit;
+  font-size: 12px;
+  min-width: 120px;
+  max-width: 250px;
+  border: 1.5px solid #000;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.ontouml-node--clickable {
+  cursor: pointer;
+}
+
+.ontouml-node--clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Header section (stereotype) */
+.ontouml-node__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid #000;
+  position: relative;
+}
+
+.ontouml-node__abstract-marker {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+.ontouml-node__stereotype {
+  font-size: 11px;
+  color: #333;
+}
+
+/* Name section */
+.ontouml-node__name {
+  padding: 6px 8px;
+  text-align: center;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* Attributes indicator */
+.ontouml-node__attrs-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-top: 1px solid #000;
+  font-size: 11px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ontouml-node__attrs-indicator-icon {
+  font-weight: 600;
+  color: #555;
+}
+
+/* Multiple indicators row */
+.ontouml-node__indicators {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-top: 1px solid #000;
+  font-size: 11px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ontouml-node__indicator {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ontouml-node__indicator-icon {
+  font-weight: 600;
+  font-size: 10px;
+}
+
+/* Attribute indicator variant */
+.ontouml-node__indicator--attrs {
+  color: #555;
+}
+
+.ontouml-node__indicator--attrs .ontouml-node__indicator-icon {
+  color: #1565c0;
+}
+
+/* Genset indicator variant */
+.ontouml-node__indicator--genset {
+  color: #555;
+}
+
+.ontouml-node__indicator--genset .ontouml-node__indicator-icon {
+  color: #7b1fa2;
+}
+
+/* Values indicator variant (for enums) */
+.ontouml-node__indicator--values {
+  color: #555;
+}
+
+.ontouml-node__indicator--values .ontouml-node__indicator-icon {
+  color: #2e7d32;
+}
+
+/* Enum values section */
+.ontouml-node__values {
+  padding: 4px 8px;
+  border-top: 1px solid #000;
+}
+
+.ontouml-node__value {
+  padding: 2px 0;
+  font-size: 11px;
+  color: #333;
+}
+
+/* Class/Role/Phase nodes - Pink */
+.ontouml-node--class {
+  background: #ffcdd2;
+}
+
+.ontouml-node--class .ontouml-node__header {
+  background: #ffcdd2;
+}
+
+/* Relator nodes - Green */
+.ontouml-node--relator {
+  background: #c8e6c9;
+}
+
+.ontouml-node--relator .ontouml-node__header {
+  background: #c8e6c9;
+}
+
+/* Enum nodes - White with dashed border */
+.ontouml-node--enum {
+  background: #fff;
+  border-style: dashed;
+}
+
+.ontouml-node--enum .ontouml-node__header {
+  border-bottom-style: dashed;
+}
+
+.ontouml-node--enum .ontouml-node__values {
+  border-top-style: dashed;
+}
+
+/* Ghost/External nodes - Grey with dashed border */
+.ontouml-node--ghost {
+  background: #e0e0e0;
+  border-color: #666;
+  border-style: dashed;
+}
+
+.ontouml-node--ghost .ontouml-node__header {
+  background: #e0e0e0;
+  border-bottom-color: #666;
+  border-bottom-style: dashed;
+}
+
+.ontouml-node--ghost .ontouml-node__name {
+  font-style: italic;
+  color: #555;
+}
+
+/* React Flow handle overrides - temporarily visible for debugging */
+.ontouml-node .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: red;
+  border: 2px solid blue;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 10; /* Ensure handles render above node content */
+}

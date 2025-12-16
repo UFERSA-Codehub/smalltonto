@@ -1,82 +1,107 @@
-export const latte = {
-  rosewater: "#dc8a78",
-  flamingo: "#dd7878",
-  pink: "#ea76cb",
-  mauve: "#8839ef",
-  red: "#d20f39",
-  maroon: "#e64553",
-  peach: "#fe640b",
-  yellow: "#df8e1d",
-  green: "#40a02b",
-  teal: "#179299",
-  sky: "#04a5e5",
-  sapphire: "#209fb5",
-  blue: "#1e66f5",
-  lavender: "#7287fd",
+// Light mode palette
+export const light = {
+  // Primary colors from specification
+  text: "#060e0f",
+  background: "#f3fafc",
+  primary: "#0e8a9a",
+  secondary: "#8ce3f2",
+  accent: "#1a9fb2",
 
-  text: "#4c4f69",
-  subtext1: "#5c5f77",
-  subtext0: "#6c6f85",
-  overlay2: "#7c7f93",
-  overlay1: "#8c8fa1",
-  overlay0: "#9ca0b0",
-  surface2: "#acb0be",
-  surface1: "#bcc0cc",
-  surface0: "#ccd0da",
-  base: "#eff1f5",
-  mantle: "#e6e9ef",
-  crust: "#dce0e8",
+  // Derived shades for UI elements
+  textSecondary: "#1a3035",
+  textMuted: "#3a5a60",
+
+  // Surfaces (derived from background)
+  surface0: "#e5f4f8",
+  surface1: "#d8eef4",
+  surface2: "#cbe8f0",
+
+  // Overlays
+  overlay0: "#8ab0b8",
+  overlay1: "#6a9098",
+  overlay2: "#4a7078",
+
+  // Semantic colors
+  red: "#d32f2f",
+  green: "#2e7d32",
+  yellow: "#c77c00",
+  orange: "#ef6c00",
+  blue: "#0d47a1",
+  purple: "#7b1fa2",
+  pink: "#c2185b",
+  teal: "#00796b",
+  cyan: "#00695c",
+
+  // Code syntax colors
+  mauve: "#7b1fa2",
+  peach: "#ef6c00",
+  sky: "#00695c",
+  sapphire: "#0288d1",
+  lavender: "#5c6bc0",
 };
 
-export const mocha = {
-  rosewater: "#f5e0dc",
-  flamingo: "#f2cdcd",
-  pink: "#f5c2e7",
-  mauve: "#cba6f7",
-  red: "#f38ba8",
-  maroon: "#eba0ac",
-  peach: "#fab387",
-  yellow: "#f9e2af",
-  green: "#a6e3a1",
-  teal: "#94e2d5",
-  sky: "#89dceb",
-  sapphire: "#74c7ec",
-  blue: "#89b4fa",
-  lavender: "#b4befe",
+// Dark mode palette
+export const dark = {
+  // Primary colors from specification
+  text: "#f0f8f9",
+  background: "#0a1214",
+  primary: "#27bcd3",
+  secondary: "#0d6373",
+  accent: "#089ab4",
 
-  text: "#cdd6f4",
-  subtext1: "#bac2de",
-  subtext0: "#a6adc8",
-  overlay2: "#9399b2",
-  overlay1: "#7f849c",
-  overlay0: "#6c7086",
-  surface2: "#585b70",
-  surface1: "#45475a",
-  surface0: "#313244",
-  base: "#1e1e2e",
-  mantle: "#181825",
-  crust: "#11111b",
+  // Derived shades for UI elements
+  textSecondary: "#d0e5e8",
+  textMuted: "#95c0c8",
+
+  // Surfaces (derived from background) - increased contrast
+  surface0: "#121e22",
+  surface1: "#1a2a2e",
+  surface2: "#243840",
+
+  // Overlays - brighter for better visibility
+  overlay0: "#4a6a72",
+  overlay1: "#6a8a92",
+  overlay2: "#8aaab2",
+
+  // Semantic colors
+  red: "#ef5350",
+  green: "#66bb6a",
+  yellow: "#d4940a",
+  orange: "#ffa726",
+  blue: "#42a5f5",
+  purple: "#ab47bc",
+  pink: "#ec407a",
+  teal: "#26a69a",
+  cyan: "#26c6da",
+
+  // Code syntax colors
+  mauve: "#ce93d8",
+  peach: "#ffb74d",
+  sky: "#4dd0e1",
+  sapphire: "#4fc3f7",
+  lavender: "#9fa8da",
 };
 
 export const getTheme = (isDark = false) => {
-  const palette = isDark ? mocha : latte;
+  const palette = isDark ? dark : light;
 
   return {
-    background: palette.base,
-    backgroundSecondary: palette.mantle,
-    backgroundTertiary: palette.crust,
+    background: palette.background,
+    backgroundSecondary: isDark ? "#0e1a1e" : "#e8f5f9",
+    backgroundTertiary: isDark ? "#141f24" : "#dceef4",
 
     surface: palette.surface0,
     surfaceHover: palette.surface1,
     surfaceActive: palette.surface2,
 
     text: palette.text,
-    textSecondary: palette.subtext1,
-    textMuted: palette.subtext0,
+    textSecondary: palette.textSecondary,
+    textMuted: palette.textMuted,
 
     border: palette.surface1,
     borderHover: palette.surface2,
 
+    // Code syntax highlighting
     keyword: palette.mauve,
     string: palette.green,
     number: palette.peach,
@@ -87,25 +112,28 @@ export const getTheme = (isDark = false) => {
     variable: palette.text,
     property: palette.lavender,
 
+    // Semantic colors
     error: palette.red,
     warning: palette.yellow,
     success: palette.green,
     info: palette.blue,
 
-    nodePackage: palette.blue,
-    nodeClass: palette.mauve,
+    // Node colors for diagrams
+    nodePackage: palette.primary,
+    nodeClass: palette.accent,
     nodeRelation: palette.teal,
     nodeAttribute: palette.green,
-    nodeDatatype: palette.peach,
+    nodeDatatype: palette.orange,
     nodeEnum: palette.pink,
-    nodeGenset: palette.sapphire,
+    nodeGenset: palette.cyan,
 
-    primary: palette.blue,
-    primaryHover: palette.sapphire,
-    selection: isDark ? `${palette.blue}33` : `${palette.blue}22`,
+    // Primary actions
+    primary: palette.primary,
+    primaryHover: palette.accent,
+    selection: isDark ? `${palette.primary}33` : `${palette.primary}22`,
 
     palette,
   };
 };
 
-export default { latte, mocha, getTheme };
+export default { light, dark, getTheme };

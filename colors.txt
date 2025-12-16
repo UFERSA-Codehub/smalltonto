@@ -1,0 +1,33 @@
+light mode:
+
+--text: oklch(15.56% 0.013 205.11);
+--background: oklch(98.04% 0.008 216.62);
+--primary: oklch(74.69% 0.121 210.86);
+--secondary: oklch(86.60% 0.086 209.64);
+--accent: oklch(83.12% 0.126 211.97);
+
+
+colors: {
+ 'text': '#060e0f',
+ 'background': '#f3fafc',
+ 'primary': '#2cc1d8',
+ 'secondary': '#8ce3f2',
+ 'accent': '#4bddf7',
+},
+
+
+dark:
+
+--text: oklch(97.34% 0.009 205.90);
+--background: oklch(13.66% 0.015 212.78);
+--primary: oklch(73.20% 0.120 211.07);
+--secondary: oklch(46.10% 0.078 214.53);
+--accent: oklch(63.23% 0.111 215.53);
+
+colors: {
+ 'text': '#f0f8f9',
+ 'background': '#030a0c',
+ 'primary': '#27bcd3',
+ 'secondary': '#0d6373',
+ 'accent': '#089ab4',
+},

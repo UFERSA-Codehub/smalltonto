@@ -1,5 +1,6 @@
 from lexer.MyLexer import MyLexer
 from parser.MyParser import MyParser
+from parser.ParserSemantic import ParserSemantic
 import json
 import sys
 import os
@@ -9,6 +10,7 @@ lexer.build()
 
 parser = MyParser(lexer)
 parser.build(debug=True)
+
 
 def test_parser(filepath, truncate=False):
 
