@@ -23,7 +23,7 @@ a = Analysis(
         'webview.platforms.winforms',
         'webview.platforms.edgechromium',
         'clr',
-        # Core lexer/parser
+        # Core lexer/parser/semantic
         'lexer',
         'lexer.MyLexer',
         'lexer.Tokenizer',
@@ -32,6 +32,8 @@ a = Analysis(
         'parser',
         'parser.MyParser',
         'parser.Parser',
+        'parser.ParserSemantic',
+        'parser.SemanticVisualizer',
         'ply',
         'ply.lex',
         'ply.yacc',
