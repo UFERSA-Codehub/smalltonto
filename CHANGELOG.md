@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- New entries will be added here automatically -->
+
+## [v2.0.0] - 2025-12-16
+
 ### Added
 - improve changelog and add manual release workflow ([`58f218f`](https://github.com/UFERSA-Codehub/smalltonto/commit/58f218f))
 - enhance PR body with grouped commits and tree-style file list ([`0f521f8`](https://github.com/UFERSA-Codehub/smalltonto/commit/0f521f8))
