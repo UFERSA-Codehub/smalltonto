@@ -583,6 +583,14 @@ class ParserSemantic:
         Docstring for _detect_subkind_patterns
         
         :param self: Description
+
+    Validações:
+        - Subkind deve especializar de kind ou outro subkind
+        - Múltiplos subkinds do mesmo pai devem estar em genset (warning)
+        - Genset de subkinds deve ter 'disjoint' explícito (warning se ausente)
+        - Genset com apenas 1 subkind não faz sentido (warning)
+        - Subkind em múltiplos gensets → warning
+        - Valida corpo do subkind (atributos/relações)
         '''
         kinds = self.symbol_table.get_classes_by_stereotype('kind')
         subkinds_as_parents = self.symbol_table.get_classes_by_stereotype('subkind')
@@ -808,6 +816,15 @@ class ParserSemantic:
         Docstring for _detect_role_patterns
         
         :param self: Description
+
+        Validações:
+            - Role deve especializar de kind, subkind, category ou outro role
+            - Role NÃO deve especializar de phase, mode ou relator
+            - Genset é opcional mas útil para múltiplos roles
+            - Genset de roles NÃO deve ter 'disjoint' (roles podem sobrepor)
+            - Genset com apenas 1 role não faz sentido (warning)
+            - Valida corpo do role (atributos/relações)
+            - Roles em múltiplos gensets → info (válido, mas informativo)
         '''
         # Buscar todas as classes com estereótipo 'role'
         all_roles = self.symbol_table.get_classes_by_stereotype('role')
@@ -1128,14 +1145,20 @@ class ParserSemantic:
                         warning["suggestion"] = suggestions[i]
                     self.warnings.append(warning)
 
-    #TODO verificar se o genset EXIGE o modificador disjoint
-    #TODO verificar se o genset pode ter o modificador complete opcionalmente
-    #TODO verificar se o genset é aceito com duas ou mais phases
     def _detect_phase_patterns(self) -> None:
         '''
         Docstring for _detect_phase_patterns
         
         :param self: Description
+
+        Validações:
+            - Phase deve especializar de kind, subkind, category ou outro phase
+            - Phase NÃO deve especializar de role, mode ou relator
+            - Genset é altamente recomendado para múltiplas phases
+            - Genset de phases DEVE ter 'disjoint' explícito (obrigatório)
+            - Genset com apenas 1 phase não faz sentido (warning)
+            - Phases em múltiplos gensets → error (phases são mutuamente exclusivas)
+            - Valida corpo do phase (atributos/relações)
         '''
         # Buscar todas as classes com estereótipo 'phase'
         all_phases = self.symbol_table.get_classes_by_stereotype('phase')
@@ -1451,6 +1474,14 @@ class ParserSemantic:
         Docstring for _detect_relator_patterns
         
         :param self: Description
+
+        Validações:
+            - Relator sem corpo (sem relações internas) → WARNING
+            - Relator com relações internas mas sem @mediation → ERROR
+            - Relator com apenas 1 mediation → ERROR (deve conectar 2+ participantes)
+            - Relações internas sem estereótipo @mediation → ERROR
+            - Alvos das mediations devem existir na tabela de símbolos → ERROR
+            - Relação @material externa correspondente entre participantes → WARNING (recomendado)
         '''
         all_relators = self.symbol_table.get_classes_by_stereotype('relator')
         
@@ -1631,6 +1662,18 @@ class ParserSemantic:
         Docstring for _detect_mode_patterns
         
         :param self: Description
+
+        Validações:
+            - Mode com corpo vazio {} → ERROR (diferente de sem corpo, que é válido para declaração)
+            - Mode sem corpo (body is None) → SKIP (declaração externa válida)
+            - Mode sem @characterization → ERROR (obrigatório)
+            - Mode sem @externalDependence → ERROR (obrigatório)
+            - Duplicidade de characterization target → WARNING
+            - Mode com specialization → WARNING (não deveria ter herança)
+            - Mode em genset → WARNING (não deveria participar de gensets)
+            - Alvos das characterizations devem existir → ERROR
+            - Alvos das characterizations devem ser sortais → WARNING (validação de estereótipo)
+            - Alvos das externalDependences devem existir → ERROR
         '''
         all_modes = self.symbol_table.get_classes_by_stereotype('mode')
         
@@ -1840,12 +1883,21 @@ class ParserSemantic:
                         warning["suggestion"] = suggestions[i]
                     self.warnings.append(warning)
 
-
     def _detect_rolemixin_patterns(self) -> None:
         '''
         Docstring for _detect_rolemixin_patterns
         
         :param self: Description
+
+        Validações:
+            - RoleMixin com specializes de não-RoleMixin → WARNING (deve especializar apenas outros RoleMixins)
+            - RoleMixin sem genset onde é general → WARNING (deve ter pelo menos um genset)
+            - Genset de RoleMixin é disjoint → INFO (roles normalmente são overlapping, verificar semântica)
+            - Specifics do genset com estereótipo inválido → WARNING (devem ser 'role' ou 'roleMixin')
+            - Specific do genset não existe → ERROR (alvo não encontrado na tabela de símbolos)
+            - Roles especializam do mesmo kind → INFO (considerar genset regular ao invés de RoleMixin)
+            - RoleMixin como specific de general não-RoleMixin → WARNING (hierarquia inválida)
+            - RoleMixin com corpo (atributos/relações) → INFO (define características compartilhadas)
         '''
         all_rolemixins = self.symbol_table.get_classes_by_stereotype('roleMixin')
         
