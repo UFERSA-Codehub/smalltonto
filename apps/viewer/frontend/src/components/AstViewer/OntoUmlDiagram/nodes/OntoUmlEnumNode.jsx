@@ -29,9 +29,11 @@ function OntoUmlEnumNode({ data }) {
       <div className="ontouml-node__name">{name}</div>
 
       {valueCount > 0 && (
-        <div className="ontouml-node__attrs-indicator">
-          <span className="ontouml-node__attrs-indicator-icon">V</span>
-          <span>{valueCount}</span>
+        <div className="ontouml-node__indicators">
+          <span className="ontouml-node__indicator ontouml-node__indicator--values" title={`${valueCount} value${valueCount > 1 ? 's' : ''}`}>
+            <span className="ontouml-node__indicator-icon">V</span>
+            <span>{valueCount}</span>
+          </span>
         </div>
       )}
 

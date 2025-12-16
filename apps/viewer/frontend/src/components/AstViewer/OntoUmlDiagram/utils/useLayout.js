@@ -99,34 +99,70 @@ function detectRelatorPatterns(nodes, edges) {
 }
 
 /**
- * Apply relator-specific layout positioning.
- * Rearranges nodes to match OntoUML visual conventions:
- * - Relator in center
- * - Mediated classes spread horizontally (left/right)
- * - Enum dependencies below relator
- * - Parent classes (generalizations) above
- * - Multiple unrelated relators placed side by side
+ * Identify hub nodes - nodes mediated by 2+ relators.
+ * Hub nodes need special positioning as they're shared between relators.
  *
- * @param {Array} nodes - Nodes to position
- * @param {Array} edges - Edges
- * @param {Object} options - Layout options
- * @param {Set} repositionedNodeIds - Optional set to track repositioned node IDs (will be populated)
+ * @param {Array} patterns - Relator patterns from detectRelatorPatterns
+ * @returns {Map<nodeId, { relatorIds: string[], mediationCount: number }>}
  */
-function applyRelatorLayout(nodes, edges, options = {}, repositionedNodeIds = new Set()) {
-  const {
-    mediationSpread = 320, // Horizontal distance from relator to mediated class
-    enumOffsetY = 200, // Vertical distance below relator for enums
-    parentOffsetY = 200, // Vertical distance above mediated classes for parents
-    relatorSpread = 600, // Horizontal distance between unrelated relator clusters
-  } = options;
+function identifyHubNodes(patterns) {
+  const nodeMediationMap = new Map();
 
-  const patterns = detectRelatorPatterns(nodes, edges);
+  // Count how many relators mediate each node
+  patterns.forEach((pattern) => {
+    const relatorId = pattern.relator.id;
+    pattern.mediatedNodeIds.forEach((nodeId) => {
+      if (!nodeMediationMap.has(nodeId)) {
+        nodeMediationMap.set(nodeId, { relatorIds: [], mediationCount: 0 });
+      }
+      const entry = nodeMediationMap.get(nodeId);
+      entry.relatorIds.push(relatorId);
+      entry.mediationCount++;
+    });
+  });
 
-  if (patterns.length === 0) {
-    return nodes; // No relators, return unchanged
-  }
+  // Filter to only hub nodes (mediated by 2+ relators)
+  const hubNodes = new Map();
+  nodeMediationMap.forEach((value, nodeId) => {
+    if (value.mediationCount >= 2) {
+      hubNodes.set(nodeId, value);
+    }
+  });
 
-  // Find shared nodes between patterns (connected relators)
+  return hubNodes;
+}
+
+/**
+ * Sort relators by connectivity - relators with more hub connections first.
+ * This ensures highly-connected relators are positioned centrally.
+ *
+ * @param {Array} patterns - Relator patterns
+ * @param {Map} hubNodes - Hub node map from identifyHubNodes
+ * @returns {Array} Sorted patterns (most connected first)
+ */
+function sortRelatorsByConnectivity(patterns, hubNodes) {
+  return [...patterns].sort((a, b) => {
+    // Count hub connections for each relator
+    const aHubCount = a.mediatedNodeIds.filter((id) => hubNodes.has(id)).length;
+    const bHubCount = b.mediatedNodeIds.filter((id) => hubNodes.has(id)).length;
+
+    // More hub connections = higher priority (sorted first)
+    if (bHubCount !== aHubCount) return bHubCount - aHubCount;
+
+    // Secondary sort: more total mediations = higher priority
+    return b.mediatedNodeIds.length - a.mediatedNodeIds.length;
+  });
+}
+
+/**
+ * Group connected patterns - patterns that share nodes are in the same group.
+ * Uses BFS to find all connected patterns.
+ *
+ * @param {Array} patterns - All relator patterns
+ * @returns {Array<Array<number>>} Array of groups, each containing pattern indices
+ */
+function groupConnectedPatterns(patterns) {
+  // Build node-to-patterns mapping
   const nodeToPatterns = new Map();
   patterns.forEach((pattern, idx) => {
     [
@@ -142,17 +178,16 @@ function applyRelatorLayout(nodes, edges, options = {}, repositionedNodeIds = ne
     });
   });
 
-  // Group connected patterns (relators that share nodes)
+  // Group connected patterns using BFS
   const patternGroups = [];
   const processedPatterns = new Set();
 
-  patterns.forEach((pattern, idx) => {
+  patterns.forEach((_, idx) => {
     if (processedPatterns.has(idx)) return;
 
     const group = [idx];
     processedPatterns.add(idx);
 
-    // Find all connected patterns via shared nodes
     const queue = [idx];
     while (queue.length > 0) {
       const currentIdx = queue.shift();
@@ -180,119 +215,433 @@ function applyRelatorLayout(nodes, edges, options = {}, repositionedNodeIds = ne
     patternGroups.push(group);
   });
 
-  // Calculate base X position for each pattern group (side by side)
-  let currentGroupX = 0;
+  return patternGroups;
+}
 
-  patternGroups.forEach((group) => {
-    // Calculate width needed for this group
-    const groupPatterns = group.map((idx) => patterns[idx]);
-    const maxMediatedCount = Math.max(
-      ...groupPatterns.map((p) => p.mediatedNodeIds.length)
-    );
-    const groupWidth = mediationSpread * Math.max(2, maxMediatedCount) + 200;
+/**
+ * Assign relators to vertical rows.
+ * Relators that share hub nodes go on different rows to prevent overlap.
+ *
+ * @param {Array} patterns - Sorted relator patterns
+ * @param {Map} hubNodes - Hub node map
+ * @returns {Array<Array>} Array of rows, each containing patterns for that row
+ */
+function assignRelatorsToRows(patterns, hubNodes) {
+  const rows = [];
+  const assignedRelators = new Set();
 
-    // Process each pattern in the group
-    groupPatterns.forEach((pattern, patternIndexInGroup) => {
-      const { relator, mediatedNodeIds, enumNodeIds, parentNodeIds } = pattern;
+  patterns.forEach((pattern) => {
+    if (assignedRelators.has(pattern.relator.id)) return;
 
-      // Calculate relator position
-      // Use dagre Y position, but adjust X for group placement
-      const relatorY = relator.position.y;
-      const relatorX =
-        currentGroupX +
-        groupWidth / 2 +
-        patternIndexInGroup * (mediationSpread / 2);
+    // Find which row this relator can go in
+    let assignedRow = -1;
 
-      // Reposition relator
-      const relatorHeight = relator.measured?.height || 52;
-      const relatorCenterY = relatorY + relatorHeight / 2;
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+      const rowRelators = rows[rowIdx];
+      let canPlaceInRow = true;
 
-      console.log("[Layout Debug] Relator:", {
-        id: relator.id,
-        name: relator.data?.name,
-        positionY: relatorY,
-        measuredHeight: relator.measured?.height,
-        usedHeight: relatorHeight,
-        centerY: relatorCenterY,
-        hasAttributes: (relator.data?.attributes?.length || 0) > 0,
-        attrCount: relator.data?.attributes?.length || 0,
-      });
+      // Check if any relator in this row shares a hub with current pattern
+      for (const existingPattern of rowRelators) {
+        const sharedHubs = pattern.mediatedNodeIds.filter(
+          (id) => hubNodes.has(id) && existingPattern.mediatedNodeIds.includes(id)
+        );
 
-      if (!repositionedNodeIds.has(relator.id)) {
-        relator.position.x = relatorX;
-        relator.position.y = relatorY;
-        repositionedNodeIds.add(relator.id);
+        if (sharedHubs.length > 0) {
+          canPlaceInRow = false;
+          break;
+        }
       }
 
-      // Position mediated classes horizontally around relator
-      // Align vertical centers for straight horizontal edges
-      mediatedNodeIds.forEach((id, index) => {
-        const node = nodes.find((n) => n.id === id);
-        if (node && !repositionedNodeIds.has(id)) {
-          // Alternate left/right: 0 -> left, 1 -> right, 2 -> further left, etc.
-          const side = index % 2 === 0 ? -1 : 1;
-          const distance = mediationSpread * Math.ceil((index + 1) / 2);
+      if (canPlaceInRow) {
+        assignedRow = rowIdx;
+        break;
+      }
+    }
 
-          const nodeHeight = node.measured?.height || 52;
-          // Align center of this node with center of relator
-          node.position.x = relatorX + side * distance;
-          node.position.y = relatorCenterY - nodeHeight / 2;
+    // If no suitable row found, create a new one
+    if (assignedRow === -1) {
+      assignedRow = rows.length;
+      rows.push([]);
+    }
 
-          console.log("[Layout Debug] Mediated node:", {
-            id: node.id,
-            name: node.data?.name,
-            measuredHeight: node.measured?.height,
-            usedHeight: nodeHeight,
-            finalPositionY: node.position.y,
-            expectedCenterY: node.position.y + nodeHeight / 2,
-            relatorCenterY: relatorCenterY,
-            centerDiff: (node.position.y + nodeHeight / 2) - relatorCenterY,
-            hasAttributes: (node.data?.attributes?.length || 0) > 0,
-            attrCount: node.data?.attributes?.length || 0,
-          });
+    rows[assignedRow].push(pattern);
+    assignedRelators.add(pattern.relator.id);
+  });
 
-          repositionedNodeIds.add(id);
-        }
-      });
+  return rows;
+}
 
-      // Position enums below relator (centered)
-      enumNodeIds.forEach((id, index) => {
-        const node = nodes.find((n) => n.id === id);
-        if (node && !repositionedNodeIds.has(id)) {
-          const offset = (index - (enumNodeIds.length - 1) / 2) * 180;
+/**
+ * Calculate the width needed for a group of patterns.
+ * Handles both simple layout (no hubs) and hub-aware layout differently.
+ *
+ * @param {Array} patterns - Patterns in this group
+ * @param {number} mediationSpread - Horizontal spacing for mediations
+ * @param {Map} hubNodes - Hub node map
+ * @param {boolean} groupHasHubs - Whether this group has any hub nodes
+ * @returns {number} Total width needed
+ */
+function calculateGroupWidth(patterns, mediationSpread, hubNodes, groupHasHubs) {
+  if (!groupHasHubs) {
+    // Simple layout: width based on alternating left/right positioning
+    // For alternating, we need ceil(count/2) positions on each side
+    const maxMediations = Math.max(...patterns.map((p) => p.mediatedNodeIds.length));
+    const sidesNeeded = Math.ceil(maxMediations / 2);
+    // Width = left side + relator + right side
+    return mediationSpread * sidesNeeded * 2 + 200;
+  }
 
-          node.position.x = relatorX + offset;
-          node.position.y = relatorCenterY + enumOffsetY;
+  // Hub-aware layout: consider non-hub nodes and hub nodes separately
+  const maxNonHubCount = Math.max(
+    ...patterns.map((p) => {
+      return p.mediatedNodeIds.filter((id) => !hubNodes.has(id)).length;
+    })
+  );
 
-          repositionedNodeIds.add(id);
-        }
-      });
+  // Base width for non-hub mediated nodes (alternating left/right of relator)
+  const sidesNeeded = Math.ceil(maxNonHubCount / 2);
+  const baseWidth = mediationSpread * sidesNeeded * 2 + 200;
 
-      // Position parent classes above the cluster
-      parentNodeIds.forEach((id, index) => {
-        const node = nodes.find((n) => n.id === id);
-        if (node && !repositionedNodeIds.has(id)) {
-          // Center above the mediated classes
-          const mediatedNodes = mediatedNodeIds
-            .map((mid) => nodes.find((n) => n.id === mid))
-            .filter(Boolean);
+  // Add width for hub nodes (positioned to the right)
+  const hubCount = new Set(
+    patterns.flatMap((p) => p.mediatedNodeIds.filter((id) => hubNodes.has(id)))
+  ).size;
+  const hubWidth = hubCount * mediationSpread;
 
-          const avgX =
-            mediatedNodes.length > 0
-              ? mediatedNodes.reduce((sum, n) => sum + n.position.x, 0) /
-                mediatedNodes.length
-              : relatorX;
+  return baseWidth + hubWidth;
+}
 
-          node.position.x = avgX + index * 100; // Spread if multiple parents
-          node.position.y = relatorCenterY - parentOffsetY;
+/**
+ * Layout a pattern group using simple alternating left/right positioning.
+ * Used when the group has NO hub nodes (no shared mediations between relators).
+ *
+ * @param {Array} patterns - Patterns in this group
+ * @param {Array} nodes - All nodes
+ * @param {number} startX - Starting X position for this group
+ * @param {number} mediationSpread - Horizontal spacing
+ * @param {number} enumOffsetY - Vertical offset for enums
+ * @param {Set} repositionedNodeIds - Track repositioned nodes
+ * @returns {number} The ending X position (for next group)
+ */
+function layoutSimplePatternGroup(patterns, nodes, startX, mediationSpread, enumOffsetY, repositionedNodeIds) {
+  let currentX = startX;
 
-          repositionedNodeIds.add(id);
-        }
+  patterns.forEach((pattern) => {
+    const { relator, mediatedNodeIds, enumNodeIds } = pattern;
+
+    // Calculate width needed for this pattern's mediations
+    const sidesNeeded = Math.ceil(mediatedNodeIds.length / 2);
+    const patternWidth = mediationSpread * Math.max(sidesNeeded, 1) * 2 + 200;
+    const relatorCenterX = currentX + patternWidth / 2;
+
+    const relatorWidth = relator.measured?.width || 150;
+    const relatorHeight = relator.measured?.height || 52;
+    const relatorY = relator.position.y; // Keep dagre's Y position
+    const relatorCenterY = relatorY + relatorHeight / 2;
+
+    // Position relator at center of its group
+    if (!repositionedNodeIds.has(relator.id)) {
+      relator.position.x = relatorCenterX - relatorWidth / 2;
+      relator.position.y = relatorY;
+      repositionedNodeIds.add(relator.id);
+    }
+
+    console.log("[Simple Layout] Relator positioned:", {
+      name: relator.data?.name,
+      x: relator.position.x,
+      y: relator.position.y,
+    });
+
+    // Position mediated nodes alternating LEFT/RIGHT
+    mediatedNodeIds.forEach((nodeId, index) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node || repositionedNodeIds.has(nodeId)) return;
+
+      const nodeWidth = node.measured?.width || 150;
+      const nodeHeight = node.measured?.height || 52;
+
+      // Alternate: 0 -> left, 1 -> right, 2 -> further left, etc.
+      const side = index % 2 === 0 ? -1 : 1;
+      const distance = mediationSpread * Math.ceil((index + 1) / 2);
+
+      // Position relative to relator CENTER
+      node.position.x = relator.position.x + relatorWidth / 2 + side * distance - nodeWidth / 2;
+      node.position.y = relatorCenterY - nodeHeight / 2;
+      repositionedNodeIds.add(nodeId);
+
+      console.log("[Simple Layout] Mediated node positioned:", {
+        name: node.data?.name,
+        side: side === -1 ? "left" : "right",
+        x: node.position.x,
+        y: node.position.y,
       });
     });
 
-    // Move to next group position
-    currentGroupX += groupWidth + relatorSpread;
+    // Position enums below relator (centered)
+    enumNodeIds.forEach((enumId, index) => {
+      const enumNode = nodes.find((n) => n.id === enumId);
+      if (!enumNode || repositionedNodeIds.has(enumId)) return;
+
+      const enumWidth = enumNode.measured?.width || 140;
+      const offset = (index - (enumNodeIds.length - 1) / 2) * 180;
+
+      enumNode.position.x = relator.position.x + relatorWidth / 2 + offset - enumWidth / 2;
+      enumNode.position.y = relator.position.y + relatorHeight + enumOffsetY;
+      repositionedNodeIds.add(enumId);
+
+      console.log("[Simple Layout] Enum positioned:", {
+        name: enumNode.data?.name,
+        x: enumNode.position.x,
+        y: enumNode.position.y,
+      });
+    });
+
+    currentX += patternWidth + 100; // Gap between patterns
+  });
+
+  return currentX;
+}
+
+/**
+ * Layout a pattern group using hub-aware vertical stacking.
+ * Used when the group HAS hub nodes (shared mediations between relators).
+ *
+ * @param {Array} patterns - Sorted patterns in this group
+ * @param {Map} hubNodes - Hub node map
+ * @param {Array} nodes - All nodes
+ * @param {number} startX - Starting X position
+ * @param {number} groupWidth - Pre-calculated group width
+ * @param {number} mediationSpread - Horizontal spacing
+ * @param {number} enumOffsetY - Vertical offset for enums
+ * @param {number} relatorRowSpacing - Vertical spacing between rows
+ * @param {Set} repositionedNodeIds - Track repositioned nodes
+ * @returns {number} The ending X position
+ */
+function layoutHubAwarePatternGroup(
+  patterns,
+  hubNodes,
+  nodes,
+  startX,
+  groupWidth,
+  mediationSpread,
+  enumOffsetY,
+  relatorRowSpacing,
+  repositionedNodeIds
+) {
+  const groupCenterX = startX + groupWidth / 2;
+
+  // Assign relators to vertical rows
+  const relatorRows = assignRelatorsToRows(patterns, hubNodes);
+
+  console.log(
+    "[Hub Layout] Relator rows:",
+    relatorRows.map((row, i) => `Row ${i}: ${row.map((p) => p.relator.data?.name).join(", ")}`)
+  );
+
+  // Position relators in their rows
+  const baseY = 100;
+  const relatorPositions = new Map();
+
+  relatorRows.forEach((rowPatterns, rowIndex) => {
+    const rowY = baseY + rowIndex * relatorRowSpacing;
+    const rowWidth = rowPatterns.length * mediationSpread;
+    let rowStartX = groupCenterX - rowWidth / 2;
+
+    rowPatterns.forEach((pattern, indexInRow) => {
+      const relator = pattern.relator;
+      const relatorWidth = relator.measured?.width || 150;
+
+      const relatorX = rowStartX + indexInRow * mediationSpread + mediationSpread / 2 - relatorWidth / 2;
+
+      if (!repositionedNodeIds.has(relator.id)) {
+        relator.position.x = relatorX;
+        relator.position.y = rowY;
+        repositionedNodeIds.add(relator.id);
+      }
+
+      relatorPositions.set(relator.id, { x: relator.position.x, y: relator.position.y });
+
+      console.log("[Hub Layout] Relator positioned:", {
+        name: relator.data?.name,
+        row: rowIndex,
+        x: relator.position.x,
+        y: relator.position.y,
+      });
+    });
+  });
+
+  // Position hub nodes at vertical center of their connected relators
+  hubNodes.forEach((hubInfo, hubNodeId) => {
+    const hubNode = nodes.find((n) => n.id === hubNodeId);
+    if (!hubNode || repositionedNodeIds.has(hubNodeId)) return;
+
+    // Only process hubs that belong to this group
+    const groupRelatorIds = new Set(patterns.map((p) => p.relator.id));
+    const relevantRelatorIds = hubInfo.relatorIds.filter((rid) => groupRelatorIds.has(rid));
+
+    if (relevantRelatorIds.length === 0) return;
+
+    const connectedPositions = relevantRelatorIds.map((rid) => relatorPositions.get(rid)).filter(Boolean);
+
+    if (connectedPositions.length === 0) return;
+
+    const avgY = connectedPositions.reduce((sum, p) => sum + p.y, 0) / connectedPositions.length;
+    const maxX = Math.max(...connectedPositions.map((p) => p.x));
+
+    const hubHeight = hubNode.measured?.height || 52;
+
+    hubNode.position.x = maxX + mediationSpread;
+    hubNode.position.y = avgY - hubHeight / 2 + 26;
+    repositionedNodeIds.add(hubNodeId);
+
+    console.log("[Hub Layout] Hub node positioned:", {
+      name: hubNode.data?.name,
+      connectedRelators: relevantRelatorIds.length,
+      x: hubNode.position.x,
+      y: hubNode.position.y,
+    });
+  });
+
+  // Position non-hub mediated nodes (ALTERNATING LEFT/RIGHT - this is the fix!)
+  patterns.forEach((pattern) => {
+    const relator = pattern.relator;
+    const relatorWidth = relator.measured?.width || 150;
+    const relatorHeight = relator.measured?.height || 52;
+    const relatorCenterY = relator.position.y + relatorHeight / 2;
+
+    const nonHubMediatedIds = pattern.mediatedNodeIds.filter((id) => !hubNodes.has(id));
+
+    nonHubMediatedIds.forEach((nodeId, index) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node || repositionedNodeIds.has(nodeId)) return;
+
+      const nodeWidth = node.measured?.width || 150;
+      const nodeHeight = node.measured?.height || 52;
+
+      // FIXED: Alternate left/right instead of all-left
+      const side = index % 2 === 0 ? -1 : 1;
+      const distance = mediationSpread * Math.ceil((index + 1) / 2);
+
+      node.position.x = relator.position.x + relatorWidth / 2 + side * distance - nodeWidth / 2;
+      node.position.y = relatorCenterY - nodeHeight / 2;
+      repositionedNodeIds.add(nodeId);
+
+      console.log("[Hub Layout] Non-hub node positioned:", {
+        name: node.data?.name,
+        side: side === -1 ? "left" : "right",
+        x: node.position.x,
+        y: node.position.y,
+      });
+    });
+
+    // Position enums below relator
+    pattern.enumNodeIds.forEach((enumId, index) => {
+      const enumNode = nodes.find((n) => n.id === enumId);
+      if (!enumNode || repositionedNodeIds.has(enumId)) return;
+
+      const enumWidth = enumNode.measured?.width || 140;
+      const relatorCenterX = relator.position.x + relatorWidth / 2;
+      const offset = (index - (pattern.enumNodeIds.length - 1) / 2) * 180;
+
+      enumNode.position.x = relatorCenterX + offset - enumWidth / 2;
+      enumNode.position.y = relator.position.y + relatorHeight + enumOffsetY;
+      repositionedNodeIds.add(enumId);
+    });
+  });
+
+  return startX + groupWidth;
+}
+
+/**
+ * Apply relator-specific layout positioning with hybrid approach.
+ *
+ * Algorithm:
+ * 1. Identify hub nodes (mediated by 2+ relators)
+ * 2. Group connected patterns
+ * 3. For each group:
+ *    - If NO hub nodes: Use simple layout (relator in center, mediations left/right)
+ *    - If HAS hub nodes: Use hub-aware layout (vertical stacking, hubs to right)
+ *
+ * @param {Array} nodes - Nodes to position
+ * @param {Array} edges - Edges
+ * @param {Object} options - Layout options
+ * @param {Set} repositionedNodeIds - Set to track repositioned node IDs
+ */
+function applyRelatorLayout(nodes, edges, options = {}, repositionedNodeIds = new Set()) {
+  const {
+    mediationSpread = 350,
+    enumOffsetY = 180,
+    relatorRowSpacing = 300, // Increased for better separation
+    groupSpacing = 500,
+  } = options;
+
+  const patterns = detectRelatorPatterns(nodes, edges);
+
+  if (patterns.length === 0) {
+    return nodes;
+  }
+
+  // Identify hub nodes globally
+  const hubNodes = identifyHubNodes(patterns);
+
+  console.log("[Layout] Hub nodes found:", hubNodes.size);
+
+  // Group connected patterns
+  const patternGroups = groupConnectedPatterns(patterns);
+
+  console.log("[Layout] Pattern groups:", patternGroups.length);
+
+  // Process each group
+  let currentGroupX = 100;
+
+  patternGroups.forEach((groupPatternIndices) => {
+    const groupPatterns = groupPatternIndices.map((idx) => patterns[idx]);
+
+    // Check if this group has any hub nodes
+    const groupHasHubs = groupPatterns.some((pattern) =>
+      pattern.mediatedNodeIds.some((id) => hubNodes.has(id))
+    );
+
+    console.log(
+      "[Layout] Group has hubs:",
+      groupHasHubs,
+      "patterns:",
+      groupPatterns.map((p) => p.relator.data?.name)
+    );
+
+    if (!groupHasHubs) {
+      // SIMPLE LAYOUT: No shared mediations
+      // Relator in center, mediations alternate left/right
+      currentGroupX = layoutSimplePatternGroup(
+        groupPatterns,
+        nodes,
+        currentGroupX,
+        mediationSpread,
+        enumOffsetY,
+        repositionedNodeIds
+      );
+    } else {
+      // HUB-AWARE LAYOUT: Complex case with shared nodes
+      // Vertical stacking, hubs to the right
+      const sortedPatterns = sortRelatorsByConnectivity(groupPatterns, hubNodes);
+      const groupWidth = calculateGroupWidth(sortedPatterns, mediationSpread, hubNodes, true);
+
+      layoutHubAwarePatternGroup(
+        sortedPatterns,
+        hubNodes,
+        nodes,
+        currentGroupX,
+        groupWidth,
+        mediationSpread,
+        enumOffsetY,
+        relatorRowSpacing,
+        repositionedNodeIds
+      );
+
+      currentGroupX += groupWidth;
+    }
+
+    currentGroupX += groupSpacing;
   });
 
   return nodes;
@@ -551,8 +900,31 @@ function positionSubtreeWithSmartSpacing(
   // Total width needed for all children
   const totalWidth = childSpaces.reduce((sum, space) => sum + space, 0);
 
+  // Calculate center X for positioning children
+  // If some siblings are pre-positioned (e.g., by relator layout), use their center
+  // Otherwise, use the parent's center
+  let centerX;
+  if (prePositionedSiblings.length > 0) {
+    // Calculate center X from pre-positioned siblings' positions
+    const prePositionedCenters = prePositionedSiblings.map((child) => {
+      const width = child.measured?.width || 150;
+      return child.position.x + width / 2;
+    });
+    centerX = prePositionedCenters.reduce((a, b) => a + b, 0) / prePositionedCenters.length;
+
+    console.log("[Generalization Debug] Using pre-positioned siblings for centerX:", {
+      parentId: parentId,
+      prePositionedCount: prePositionedSiblings.length,
+      prePositionedCenters: prePositionedCenters,
+      calculatedCenterX: centerX,
+      originalParentCenterX: parentCenterX,
+    });
+  } else {
+    centerX = parentCenterX;
+  }
+
   // Starting X position (left edge of the leftmost child's space)
-  let currentX = parentCenterX - totalWidth / 2;
+  let currentX = centerX - totalWidth / 2;
 
   childIds.forEach((childId, index) => {
     const child = nodes.find((n) => n.id === childId);
@@ -567,9 +939,12 @@ function positionSubtreeWithSmartSpacing(
     // Check if this child was already positioned (e.g., by relator layout)
     const wasPrePositioned = repositionedNodeIds.has(childId);
 
+    // Calculate the new X position for this child
+    const newX = childCenterX - childWidth / 2;
+
     if (!wasPrePositioned) {
       // Not pre-positioned: set both X and Y
-      child.position.x = childCenterX - childWidth / 2;
+      child.position.x = newX;
       child.position.y = childY;
       repositionedNodeIds.add(childId);
 
@@ -583,16 +958,37 @@ function positionSubtreeWithSmartSpacing(
         y: child.position.y,
       });
     } else {
-      // Pre-positioned: only align Y to match siblings, preserve X from relator layout
-      // This ensures siblings are at the same hierarchy level
-      if (child.position.y !== childY) {
-        console.log("[Generalization Debug] Aligning pre-positioned sibling Y:", {
+      // Pre-positioned by relator layout
+      // We need to spread siblings evenly, so update X position as well
+      // Only update if there are non-pre-positioned siblings that need proper spacing
+      const hasNonPrePositionedSiblings = childIds.some(
+        (id) => !repositionedNodeIds.has(id) || id === childId
+      );
+
+      if (hasNonPrePositionedSiblings && prePositionedSiblings.length < childIds.length) {
+        // Mixed case: some siblings are pre-positioned, some are not
+        // Reposition this pre-positioned sibling to maintain even spacing
+        console.log("[Generalization Debug] Repositioning pre-positioned sibling for even spacing:", {
           id: childId,
           name: child.data?.name,
+          oldX: child.position.x,
+          newX: newX,
           oldY: child.position.y,
           newY: childY,
         });
+        child.position.x = newX;
         child.position.y = childY;
+      } else {
+        // All siblings are pre-positioned, just align Y
+        if (child.position.y !== childY) {
+          console.log("[Generalization Debug] Aligning pre-positioned sibling Y:", {
+            id: childId,
+            name: child.data?.name,
+            oldY: child.position.y,
+            newY: childY,
+          });
+          child.position.y = childY;
+        }
       }
     }
 
@@ -892,6 +1288,92 @@ function assignEdgeHandles(nodes, edges) {
 }
 
 /**
+ * Resolve node collisions by pushing overlapping nodes apart.
+ * Uses iterative approach to handle chain reactions.
+ *
+ * @param {Array} nodes - All nodes
+ * @param {number} minGap - Minimum gap between node edges (default 30px)
+ * @param {number} maxIterations - Maximum iterations to prevent infinite loops
+ * @returns {Array} Nodes with resolved positions
+ */
+function resolveCollisions(nodes, minGap = 30, maxIterations = 10) {
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    let hasCollision = false;
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const nodeA = nodes[i];
+        const nodeB = nodes[j];
+
+        // Get node dimensions
+        const aWidth = nodeA.measured?.width || 150;
+        const aHeight = nodeA.measured?.height || 52;
+        const bWidth = nodeB.measured?.width || 150;
+        const bHeight = nodeB.measured?.height || 52;
+
+        // Calculate centers
+        const aCenterX = nodeA.position.x + aWidth / 2;
+        const aCenterY = nodeA.position.y + aHeight / 2;
+        const bCenterX = nodeB.position.x + bWidth / 2;
+        const bCenterY = nodeB.position.y + bHeight / 2;
+
+        // Calculate overlap amounts
+        const minDistX = (aWidth + bWidth) / 2 + minGap;
+        const minDistY = (aHeight + bHeight) / 2 + minGap;
+        const actualDistX = Math.abs(aCenterX - bCenterX);
+        const actualDistY = Math.abs(aCenterY - bCenterY);
+
+        const overlapX = minDistX - actualDistX;
+        const overlapY = minDistY - actualDistY;
+
+        // Check if there's actual overlap (both X and Y must overlap)
+        if (overlapX > 0 && overlapY > 0) {
+          hasCollision = true;
+
+          // Push apart in the direction of least overlap
+          if (overlapX < overlapY) {
+            // Push horizontally
+            const pushX = overlapX / 2 + 5; // Extra 5px for safety
+            if (aCenterX < bCenterX) {
+              nodeA.position.x -= pushX;
+              nodeB.position.x += pushX;
+            } else {
+              nodeA.position.x += pushX;
+              nodeB.position.x -= pushX;
+            }
+          } else {
+            // Push vertically
+            const pushY = overlapY / 2 + 5;
+            if (aCenterY < bCenterY) {
+              nodeA.position.y -= pushY;
+              nodeB.position.y += pushY;
+            } else {
+              nodeA.position.y += pushY;
+              nodeB.position.y -= pushY;
+            }
+          }
+
+          console.log("[Collision] Resolved overlap:", {
+            nodeA: nodeA.data?.name || nodeA.id,
+            nodeB: nodeB.data?.name || nodeB.id,
+            overlapX,
+            overlapY,
+          });
+        }
+      }
+    }
+
+    // If no collisions found, we're done
+    if (!hasCollision) {
+      console.log(`[Collision] Resolved in ${iteration + 1} iterations`);
+      break;
+    }
+  }
+
+  return nodes;
+}
+
+/**
  * Apply dagre layout to nodes and edges.
  * Returns positioned nodes with x,y coordinates.
  *
@@ -964,7 +1446,7 @@ export function applyDagreLayout(nodes, edges, options = {}) {
   // Track which nodes have been repositioned by each layout phase
   const repositionedNodeIds = new Set();
 
-  // Post-process Phase 1: Apply relator-specific layout (highest priority)
+  // Post-process Phase 1: Apply relator-specific layout
   // This positions relators, mediated classes, and relator enums
   applyRelatorLayout(layoutedNodes, edges, {
     mediationSpread: options.mediationSpread || 220,
@@ -973,7 +1455,7 @@ export function applyDagreLayout(nodes, edges, options = {}) {
     relatorSpread: options.relatorSpread || 500,
   }, repositionedNodeIds);
 
-  // Post-process Phase 2: Apply generalization hierarchy layout with smart spacing
+  // Post-process Phase 2: Apply generalization hierarchy layout
   // This positions parents above children, allocates space proportional to subtree width
   applyGeneralizationLayout(layoutedNodes, edges, {
     baseNodeSpacing: options.baseNodeSpacing || 180,
@@ -987,6 +1469,9 @@ export function applyDagreLayout(nodes, edges, options = {}) {
     enumOffsetX: options.enumOffsetX || 200,
     enumOffsetY: options.enumOffsetY || 150,
   }, repositionedNodeIds);
+
+  // Post-process Phase 4: Resolve any remaining collisions
+  resolveCollisions(layoutedNodes, 50, 25);
 
   // Assign edge handles based on final node positions
   const finalEdges = assignEdgeHandles(layoutedNodes, edges);
@@ -1012,8 +1497,8 @@ export function relayoutWithMeasurements(nodesWithMeasurements, edges, options =
   
   // Phase 1: Apply relator layout using actual measurements
   applyRelatorLayout(repositionedNodes, edges, options, repositionedNodeIds);
-  
-  // Phase 2: Apply generalization hierarchy layout with smart spacing
+
+  // Phase 2: Apply generalization hierarchy layout
   applyGeneralizationLayout(repositionedNodes, edges, {
     baseNodeSpacing: options.baseNodeSpacing || 180,
     minNodeSpacing: options.minNodeSpacing || 160,
@@ -1025,6 +1510,9 @@ export function relayoutWithMeasurements(nodesWithMeasurements, edges, options =
     enumOffsetX: options.enumOffsetX || 200,
     enumOffsetY: options.enumOffsetY || 150,
   }, repositionedNodeIds);
+
+  // Phase 4: Resolve collisions
+  resolveCollisions(repositionedNodes, 50, 25);
 
   // Re-assign edge handles based on new positions
   const finalEdges = assignEdgeHandles(repositionedNodes, edges);

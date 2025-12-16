@@ -82,6 +82,7 @@ export default function NodeDetailsPopup({ node, position, onClose }) {
 
   const attributes = data.attributes || [];
   const values = data.values || [];
+  const gensetInfo = data.gensetInfo || null;
 
   return (
     <div
@@ -134,6 +135,47 @@ export default function NodeDetailsPopup({ node, position, onClose }) {
               </ul>
             ) : (
               <div className="node-details-popup__empty">No attributes</div>
+            )}
+          </div>
+        )}
+
+        {/* Genset section for classes that are generals */}
+        {isClass && gensetInfo && (
+          <div className="node-details-popup__section">
+            <div className="node-details-popup__section-title">
+              Generalization Set
+              {gensetInfo.name && (
+                <span className="node-details-popup__genset-name"> ({gensetInfo.name})</span>
+              )}
+            </div>
+            <div className="node-details-popup__genset-badges">
+              {gensetInfo.isDisjoint && (
+                <span className="node-details-popup__badge node-details-popup__badge--disjoint">
+                  disjoint
+                </span>
+              )}
+              {gensetInfo.isComplete && (
+                <span className="node-details-popup__badge node-details-popup__badge--complete">
+                  complete
+                </span>
+              )}
+              {!gensetInfo.isDisjoint && !gensetInfo.isComplete && (
+                <span className="node-details-popup__badge node-details-popup__badge--default">
+                  overlapping, incomplete
+                </span>
+              )}
+            </div>
+            {gensetInfo.specifics?.length > 0 && (
+              <>
+                <div className="node-details-popup__subsection-title">Specifics</div>
+                <ul className="node-details-popup__list">
+                  {gensetInfo.specifics.map((specific, idx) => (
+                    <li key={idx} className="node-details-popup__list-item node-details-popup__specific">
+                      {specific}
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </div>
         )}

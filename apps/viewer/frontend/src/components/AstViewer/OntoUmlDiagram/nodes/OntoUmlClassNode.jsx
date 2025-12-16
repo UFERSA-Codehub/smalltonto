@@ -4,11 +4,15 @@ import "./nodes.css";
 
 /**
  * OntoUML Class Node for kinds, subkinds, roles, phases, categories, mixins, etc.
- * Pink background with stereotype header, name, and optional attribute indicator.
+ * Pink background with stereotype header, name, and optional indicators (attributes, genset).
  */
 function OntoUmlClassNode({ data }) {
-  const { name, stereotype, attributes = [], isAbstract = false } = data;
+  const { name, stereotype, attributes = [], isAbstract = false, gensetInfo } = data;
   const attrCount = attributes.length;
+  const specificCount = gensetInfo?.specifics?.length || 0;
+
+  // Determine if we have any indicators to show
+  const hasIndicators = attrCount > 0 || gensetInfo;
 
   return (
     <div className="ontouml-node ontouml-node--class ontouml-node--clickable">
@@ -31,10 +35,20 @@ function OntoUmlClassNode({ data }) {
 
       <div className="ontouml-node__name">{name}</div>
 
-      {attrCount > 0 && (
-        <div className="ontouml-node__attrs-indicator">
-          <span className="ontouml-node__attrs-indicator-icon">A</span>
-          <span>{attrCount}</span>
+      {hasIndicators && (
+        <div className="ontouml-node__indicators">
+          {attrCount > 0 && (
+            <span className="ontouml-node__indicator ontouml-node__indicator--attrs" title={`${attrCount} attribute${attrCount > 1 ? 's' : ''}`}>
+              <span className="ontouml-node__indicator-icon">A</span>
+              <span>{attrCount}</span>
+            </span>
+          )}
+          {gensetInfo && (
+            <span className="ontouml-node__indicator ontouml-node__indicator--genset" title={`General in genset with ${specificCount} specific${specificCount > 1 ? 's' : ''}`}>
+              <span className="ontouml-node__indicator-icon">G</span>
+              <span>{specificCount}</span>
+            </span>
+          )}
         </div>
       )}
 

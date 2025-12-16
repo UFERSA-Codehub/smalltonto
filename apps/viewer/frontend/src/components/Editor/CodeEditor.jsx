@@ -260,6 +260,55 @@ export default function CodeEditor() {
   const debounceRef = useRef(null);
   const highlightTimeoutRef = useRef(null);
   const tokenSyncDebounceRef = useRef(null);
+  const lastSyncedContentRef = useRef(null); // Track content to detect external changes
+
+  /**
+   * Apply highlight to the editor at specified location.
+   * Extracted as a helper so it can be called both from the highlight effect
+   * and after editor initialization (to handle pending requests).
+   */
+  const applyHighlight = useCallback((request) => {
+    if (!viewRef.current || !request) return false;
+
+    const { line, column, length, type } = request;
+    const doc = viewRef.current.state.doc;
+
+    if (line < 1 || line > doc.lines) {
+      return false;
+    }
+
+    const lineInfo = doc.line(line);
+    const lineLength = lineInfo.to - lineInfo.from;
+
+    const safeColumn = Math.max(1, Math.min(column || 1, lineLength + 1));
+    const from = Math.min(lineInfo.from + (safeColumn - 1), lineInfo.to);
+    const to = Math.min(from + (length || 1), lineInfo.to);
+
+    viewRef.current.dispatch({
+      selection: { anchor: from, head: to },
+      scrollIntoView: true,
+      effects: setHighlightEffect.of({ from, to, type }),
+    });
+
+    viewRef.current.focus();
+
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+    }
+
+    const shouldKeepHighlight = settings.keepTokenHighlight && type === "token";
+    if (!shouldKeepHighlight) {
+      highlightTimeoutRef.current = setTimeout(() => {
+        if (viewRef.current) {
+          viewRef.current.dispatch({
+            effects: clearHighlightEffect.of(null),
+          });
+        }
+      }, 1500);
+    }
+
+    return true;
+  }, [settings.keepTokenHighlight]);
 
   const debouncedAutoAction = useCallback(
     (content, path) => {
@@ -301,6 +350,8 @@ export default function CodeEditor() {
     (update) => {
       if (update.docChanged && activeTab) {
         const newContent = update.state.doc.toString();
+        // Track that this content came from the editor (not external)
+        lastSyncedContentRef.current = newContent;
         updateTabContent(activeTab.path, newContent);
         
         if (activeTab.name.endsWith(".tonto") && (settings.autoSaveToDisk || settings.autoSaveToReparse)) {
@@ -372,49 +423,16 @@ export default function CodeEditor() {
     });
   }, [parseResult]);
 
+  // Handle highlight requests (e.g., from "Show in Code" in diagram)
   useEffect(() => {
-    if (!viewRef.current || !highlightRequest) return;
-
-    const { line, column, length, type } = highlightRequest;
-    const doc = viewRef.current.state.doc;
-
-    if (line < 1 || line > doc.lines) {
+    if (!highlightRequest) return;
+    
+    // Try to apply highlight - if editor isn't ready yet, it will be handled
+    // by the editor initialization effect
+    if (applyHighlight(highlightRequest)) {
       setHighlightRequest(null);
-      return;
     }
-
-    const lineInfo = doc.line(line);
-    const lineLength = lineInfo.to - lineInfo.from;
-    
-    const safeColumn = Math.max(1, Math.min(column || 1, lineLength + 1));
-    const from = Math.min(lineInfo.from + (safeColumn - 1), lineInfo.to);
-    const to = Math.min(from + (length || 1), lineInfo.to);
-
-    viewRef.current.dispatch({
-      selection: { anchor: from, head: to },
-      scrollIntoView: true,
-      effects: setHighlightEffect.of({ from, to, type }),
-    });
-
-    viewRef.current.focus();
-
-    if (highlightTimeoutRef.current) {
-      clearTimeout(highlightTimeoutRef.current);
-    }
-    
-    const shouldKeepHighlight = settings.keepTokenHighlight && type === "token";
-    if (!shouldKeepHighlight) {
-      highlightTimeoutRef.current = setTimeout(() => {
-        if (viewRef.current) {
-          viewRef.current.dispatch({
-            effects: clearHighlightEffect.of(null),
-          });
-        }
-      }, 1500);
-    }
-
-    setHighlightRequest(null);
-  }, [highlightRequest, setHighlightRequest, settings.keepTokenHighlight]);
+  }, [highlightRequest, setHighlightRequest, applyHighlight]);
 
   useEffect(() => {
     if (!editorRef.current || !activeTab) return;
@@ -482,6 +500,17 @@ export default function CodeEditor() {
       });
     }
 
+    // Process any pending highlight request that arrived before editor was ready
+    // (e.g., from "Show in Code" in diagram while in AST mode)
+    if (highlightRequest) {
+      // Use setTimeout to ensure the editor is fully rendered before applying highlight
+      setTimeout(() => {
+        if (applyHighlight(highlightRequest)) {
+          setHighlightRequest(null);
+        }
+      }, 0);
+    }
+
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
@@ -499,6 +528,28 @@ export default function CodeEditor() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab?.path, theme]);
+
+  // Sync external content changes to the editor (e.g., from "Implement" button)
+  useEffect(() => {
+    if (!viewRef.current || !activeTab) return;
+
+    const currentEditorContent = viewRef.current.state.doc.toString();
+    const tabContent = activeTab.content;
+
+    // If content differs and it's not from our last sync (external change)
+    if (tabContent !== currentEditorContent && tabContent !== lastSyncedContentRef.current) {
+      // Update the editor with the new content
+      viewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: currentEditorContent.length,
+          insert: tabContent,
+        },
+      });
+      // Track this as synced
+      lastSyncedContentRef.current = tabContent;
+    }
+  }, [activeTab?.content, activeTab]);
 
   useEffect(() => {
     if (viewRef.current) {

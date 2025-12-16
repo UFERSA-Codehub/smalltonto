@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Package, Box, Database, List, GitBranch, Link, FileText, Import, ArrowRightLeft, Puzzle, AlertTriangle, CheckCircle } from "lucide-react";
+import { Package, Box, Database, List, GitBranch, Link, FileText, Import, ArrowRightLeft, Puzzle, AlertTriangle, CheckCircle, ChevronRight } from "lucide-react";
 import { useApp } from "../AppShell";
 import { transformAstToSummary, getSummaryStats } from "./OntoUmlDiagram/utils/astToOntoUml";
 import "./SummaryPanel.css";
@@ -41,13 +41,37 @@ export default function SummaryPanel({ ast }) {
       }
     : getSummaryStats(summary);
 
-  // Build class list from semantic data
+  // Build class list from semantic data with nested details
   const classList = symbols?.classes
-    ? symbols.classes.map((cls) => ({
-        id: `class-${cls.class_name}`,
-        name: cls.class_name,
-        stereotype: cls.class_stereotype,
-      }))
+    ? symbols.classes.map((cls) => {
+        // Extract attributes and internal relations from class body
+        const attributes = (cls.body || [])
+          .filter((item) => item.node_type === "attribute")
+          .map((attr) => {
+            const card = attr.cardinality;
+            return {
+              name: attr.attribute_name,
+              type: attr.attribute_type,
+              cardinality: card ? `[${card.min}${card.min !== card.max ? `..${card.max}` : ""}]` : null,
+            };
+          });
+
+        const internalRelations = (cls.body || [])
+          .filter((item) => item.node_type === "internal_relation")
+          .map((rel) => ({
+            stereotype: rel.relation_stereotype,
+            target: rel.second_end,
+          }));
+
+        return {
+          id: `class-${cls.class_name}`,
+          name: cls.class_name,
+          stereotype: cls.class_stereotype,
+          specialization: cls.specialization?.parents || [],
+          attributes,
+          internalRelations,
+        };
+      })
     : summary.classes?.list || [];
 
   // Build stereotype breakdown
@@ -183,23 +207,12 @@ export default function SummaryPanel({ ast }) {
           renderItem={(imp) => imp.name}
         />
 
-        {/* Classes Section */}
-        <SummarySection
-          icon={<Box size={14} />}
-          title="Classes"
-          count={stats.classCount}
-          items={classList}
+        {/* Classes Section - with expandable items */}
+        <ClassSection
+          classList={classList}
+          classByStereotype={classByStereotype}
           selectedId={selectedAstNode}
           onItemClick={handleItemClick}
-          renderItem={(cls) => (
-            <>
-              <span className={`summary-item__stereotype summary-item__stereotype--${cls.stereotype}`}>
-                {cls.stereotype}
-              </span>
-              {cls.name}
-            </>
-          )}
-          groupBy={classByStereotype}
         />
 
         {/* Datatypes Section */}
@@ -312,6 +325,155 @@ export default function SummaryPanel({ ast }) {
   );
 }
 
+/**
+ * Specialized section for Classes with expandable items showing
+ * specialization, attributes, and internal relations.
+ */
+function ClassSection({ classList, classByStereotype, selectedId, onItemClick }) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [expandedClasses, setExpandedClasses] = useState(new Set());
+
+  const count = classList.length;
+
+  const toggleClassExpansion = (classId, e) => {
+    e.stopPropagation();
+    setExpandedClasses((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(classId)) {
+        newSet.delete(classId);
+      } else {
+        newSet.add(classId);
+      }
+      return newSet;
+    });
+  };
+
+  const hasNestedContent = (cls) => {
+    return (
+      cls.specialization?.length > 0 ||
+      cls.attributes?.length > 0 ||
+      cls.internalRelations?.length > 0
+    );
+  };
+
+  if (count === 0) {
+    return (
+      <div className="summary-section summary-section--empty">
+        <div className="summary-section__header" onClick={() => setIsExpanded(!isExpanded)}>
+          <Box size={14} />
+          <span className="summary-section__title">Classes</span>
+          <span className="summary-section__count">{count}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="summary-section">
+      <div className="summary-section__header" onClick={() => setIsExpanded(!isExpanded)}>
+        <Box size={14} />
+        <span className="summary-section__title">Classes</span>
+        <span className="summary-section__count">{count}</span>
+        <span className={`summary-section__chevron ${isExpanded ? "summary-section__chevron--expanded" : ""}`}>
+          ▶
+        </span>
+      </div>
+
+      {isExpanded && (
+        <div className="summary-section__content">
+          {/* Show stereotype breakdown */}
+          {Object.keys(classByStereotype).length > 0 && (
+            <div className="summary-section__groups">
+              {Object.entries(classByStereotype).map(([key, value]) => (
+                <span key={key} className="summary-section__group">
+                  {key}: <strong>{value}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* List classes with expandable nested content */}
+          <ul className="summary-section__list">
+            {classList.map((cls) => {
+              const isClassExpanded = expandedClasses.has(cls.id);
+              const hasNested = hasNestedContent(cls);
+
+              return (
+                <li key={cls.id} className="summary-item-wrapper">
+                  <div
+                    className={`summary-item summary-item--class ${selectedId === cls.id ? "summary-item--selected" : ""}`}
+                    onClick={() => onItemClick(cls.id)}
+                  >
+                    {hasNested && (
+                      <span
+                        className={`summary-item__expand ${isClassExpanded ? "summary-item__expand--expanded" : ""}`}
+                        onClick={(e) => toggleClassExpansion(cls.id, e)}
+                      >
+                        <ChevronRight size={12} />
+                      </span>
+                    )}
+                    {!hasNested && <span className="summary-item__expand-placeholder" />}
+                    <span className={`summary-item__stereotype summary-item__stereotype--${cls.stereotype}`}>
+                      {cls.stereotype}
+                    </span>
+                    {cls.name}
+                  </div>
+
+                  {/* Nested content when expanded */}
+                  {isClassExpanded && hasNested && (
+                    <div className="summary-item__nested">
+                      {/* Specialization */}
+                      {cls.specialization?.length > 0 && (
+                        <div className="summary-item__nested-group">
+                          <span className="summary-item__nested-label">specializes</span>
+                          {cls.specialization.map((parent, idx) => (
+                            <span key={idx} className="summary-item__nested-value summary-item__nested-value--parent">
+                              {parent}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Attributes */}
+                      {cls.attributes?.length > 0 && (
+                        <div className="summary-item__nested-group">
+                          <span className="summary-item__nested-label">attributes</span>
+                          {cls.attributes.map((attr, idx) => (
+                            <div key={idx} className="summary-item__nested-attr">
+                              <span className="summary-item__nested-attr-name">{attr.name}</span>
+                              <span className="summary-item__nested-attr-type">: {attr.type}</span>
+                              {attr.cardinality && (
+                                <span className="summary-item__nested-attr-card">{attr.cardinality}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Internal Relations */}
+                      {cls.internalRelations?.length > 0 && (
+                        <div className="summary-item__nested-group">
+                          <span className="summary-item__nested-label">relations</span>
+                          {cls.internalRelations.map((rel, idx) => (
+                            <div key={idx} className="summary-item__nested-rel">
+                              <span className="summary-item__nested-rel-stereo">@{rel.stereotype}</span>
+                              <span className="summary-item__nested-rel-target">→ {rel.target}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SummarySection({ icon, title, count, items, selectedId, onItemClick, renderItem, groupBy }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -370,6 +532,7 @@ function SummarySection({ icon, title, count, items, selectedId, onItemClick, re
 }
 
 function PatternsSection({ patterns, incompletePatterns, patternCounts }) {
+  const { setMode, setAnalysisView, setFocusedWarningFilter } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const totalPatterns = patterns.length + incompletePatterns.length;
@@ -379,6 +542,17 @@ function PatternsSection({ patterns, incompletePatterns, patternCounts }) {
   const activePatternTypes = Object.entries(patternCounts)
     .filter(([, count]) => count > 0)
     .map(([type, count]) => ({ type: type.replace("_Pattern", ""), count }));
+
+  // Handler for clicking incomplete patterns - navigate to related warning
+  const handleIncompletePatternClick = (pattern, e) => {
+    e.stopPropagation(); // Prevent section collapse
+    setMode("ide");
+    setAnalysisView("warnings");
+    setFocusedWarningFilter({
+      anchor_class: pattern.anchor_class,
+      pattern_type: pattern.pattern_type,
+    });
+  };
 
   if (!hasPatterns) {
     return (
@@ -441,7 +615,12 @@ function PatternsSection({ patterns, incompletePatterns, patternCounts }) {
               </div>
               <ul className="summary-section__list">
                 {incompletePatterns.map((pattern, idx) => (
-                  <li key={`incomplete-${idx}`} className="summary-item summary-item--pattern-incomplete">
+                  <li
+                    key={`incomplete-${idx}`}
+                    className="summary-item summary-item--pattern-incomplete summary-item--clickable"
+                    onClick={(e) => handleIncompletePatternClick(pattern, e)}
+                    title="Click to view warnings"
+                  >
                     <span className="summary-item__pattern-type">{pattern.pattern_type?.replace("_", " ")}</span>
                     <span className="summary-item__pattern-anchor">{pattern.anchor_class}</span>
                     <span className="summary-item__pattern-issues">

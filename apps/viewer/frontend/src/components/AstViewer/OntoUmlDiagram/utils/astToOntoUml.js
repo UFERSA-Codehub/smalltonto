@@ -254,6 +254,9 @@ export function transformAstToOntoUml(ast, semantic = null, filters = {}) {
     const isRelator = stereotype === "relator";
     const nodeType = isRelator ? "ontoUmlRelator" : "ontoUmlClass";
 
+    // Check if this class is a general in any genset
+    const gensetInfo = gensetMap.get(cls.class_name);
+
     nodes.push({
       id: nodeId,
       type: nodeType,
@@ -264,6 +267,13 @@ export function transformAstToOntoUml(ast, semantic = null, filters = {}) {
         attributeDisplay: "shown",
         line: cls.line,
         column: cls.column,
+        // Genset info (if this class is a general)
+        gensetInfo: gensetInfo ? {
+          name: gensetInfo.gensetName,
+          isDisjoint: gensetInfo.disjoint,
+          isComplete: gensetInfo.complete,
+          specifics: gensetInfo.specifics,
+        } : null,
       },
       position: { x: 0, y: 0 },
     });
@@ -309,6 +319,8 @@ export function transformAstToOntoUml(ast, semantic = null, filters = {}) {
         data: {
           name: en.enum_name,
           values: en.values || [],
+          line: en.line,
+          column: en.column,
         },
         position: { x: 0, y: 0 },
       });
@@ -345,6 +357,8 @@ export function transformAstToOntoUml(ast, semantic = null, filters = {}) {
           name: dt.datatype_name,
           attributes: extractAttributes(dt.body),
           attributeDisplay: "shown",
+          line: dt.line,
+          column: dt.column,
         },
         position: { x: 0, y: 0 },
       });
