@@ -5,6 +5,245 @@ import json
 import sys
 import os
 
+
+def format_cardinality(card):
+    """
+    Formata cardinalidade de dict para string legível.
+    Exemplo: {'min': 1, 'max': '*'} -> '[1..*]'
+    """
+    if card is None:
+        return '[*]'
+    if isinstance(card, str):
+        return f'[{card}]'
+    if isinstance(card, dict):
+        min_val = card.get('min', '*')
+        max_val = card.get('max', '*')
+        if min_val == max_val:
+            return f'[{min_val}]'
+        return f'[{min_val}..{max_val}]'
+    return f'[{card}]'
+
+
+def print_pattern(pattern, is_complete=True):
+    """
+    Imprime um padrão de forma estruturada e legível.
+    Formatação específica para cada tipo de padrão.
+    """
+    pattern_type = pattern.get('pattern_type', 'Unknown')
+    anchor = pattern.get('anchor_class', '?')
+    stereotype = pattern.get('anchor_stereotype', '?')
+    elements = pattern.get('elements', {})
+    constraints = pattern.get('constraints', {})
+    
+    # Símbolo de status
+    status_icon = "+" if is_complete else "!"
+    print(f"\n{status_icon} {pattern_type}")
+    print(f"  Anchor: {anchor} (@{stereotype})")
+    
+    # Formatação específica por tipo de padrão
+    if pattern_type == "Subkind_Pattern":
+        _print_subkind_pattern(elements, constraints)
+    elif pattern_type == "Role_Pattern":
+        _print_role_pattern(elements, constraints)
+    elif pattern_type == "Phase_Pattern":
+        _print_phase_pattern(elements, constraints)
+    elif pattern_type == "Relator_Pattern":
+        _print_relator_pattern(elements, constraints)
+    elif pattern_type == "Mode_Pattern":
+        _print_mode_pattern(elements, constraints)
+    elif pattern_type == "RoleMixin_Pattern":
+        _print_rolemixin_pattern(elements, constraints)
+    else:
+        # Fallback para padrões desconhecidos
+        print(f"  Elements: {elements}")
+        print(f"  Constraints: {constraints}")
+    
+    # Mostrar violations e suggestions para padrões incompletos
+    if not is_complete:
+        violations = pattern.get('violations', [])
+        suggestions = pattern.get('suggestions', [])
+        
+        if violations:
+            print("  Violations:")
+            for v in violations:
+                severity = v.get('severity', 'warning').upper()
+                message = v.get('message', '')
+                print(f"    - [{severity}] {message}")
+        
+        if suggestions:
+            print("  Suggestions:")
+            for s in suggestions:
+                print(f"    - {s.get('message', '')}")
+                code_sug = s.get('code_suggestion', '')
+                if code_sug:
+                    # Limitar tamanho e mostrar código sugerido
+                    if len(code_sug) > 60:
+                        print(f"      Code: {code_sug[:60]}...")
+                    else:
+                        print(f"      Code: {code_sug}")
+
+
+def _print_subkind_pattern(elements, constraints):
+    """Imprime detalhes do Subkind_Pattern."""
+    general = elements.get('general', '?')
+    specifics = elements.get('specifics', [])
+    genset_name = elements.get('genset')
+    
+    print(f"  General (Parent): {general}")
+    
+    if specifics:
+        print(f"  Subkinds: {', '.join(specifics)}")
+    
+    if genset_name:
+        disjoint = "disjoint" if constraints.get('disjoint') else ""
+        complete = "complete" if constraints.get('complete') else ""
+        modifiers = ' '.join(filter(None, [disjoint, complete])) or "(no modifiers)"
+        print(f"  Genset: {genset_name} [{modifiers}]")
+        
+        if constraints.get('disjoint_implicit'):
+            print(f"    (!) disjoint was implicitly applied")
+    else:
+        print(f"  Genset: (none)")
+
+
+def _print_role_pattern(elements, constraints):
+    """Imprime detalhes do Role_Pattern."""
+    general = elements.get('general', '?')
+    specifics = elements.get('specifics', [])
+    genset_name = elements.get('genset')
+    roles_details = elements.get('roles_details', [])
+    
+    print(f"  General (Parent): {general}")
+    
+    if specifics:
+        print(f"  Roles: {', '.join(specifics)}")
+    
+    if genset_name:
+        disjoint = "disjoint" if constraints.get('disjoint') else ""
+        complete = "complete" if constraints.get('complete') else ""
+        modifiers = ' '.join(filter(None, [disjoint, complete])) or "(no modifiers)"
+        print(f"  Genset: {genset_name} [{modifiers}]")
+    else:
+        print(f"  Genset: (none)")
+    
+    # Mostrar detalhes de cada role
+    if roles_details:
+        print("  Role Details:")
+        for role_info in roles_details:
+            role_name = role_info.get('name', '?')
+            has_body = role_info.get('has_body', False)
+            attributes = role_info.get('attributes', [])
+            
+            body_str = "(with body)" if has_body else "(no body)"
+            print(f"    - {role_name} {body_str}")
+            
+            if attributes:
+                for attr in attributes:
+                    # Chaves: 'name' e 'type' (definido em ParserSemantic.py)
+                    attr_name = attr.get('name', '?')
+                    attr_type = attr.get('type', '?')
+                    print(f"        {attr_name}: {attr_type}")
+
+
+def _print_phase_pattern(elements, constraints):
+    """Imprime detalhes do Phase_Pattern."""
+    general = elements.get('general', '?')
+    specifics = elements.get('specifics', [])
+    genset_name = elements.get('genset')
+    
+    print(f"  General (Parent): {general}")
+    
+    if specifics:
+        print(f"  Phases: {', '.join(specifics)}")
+    
+    if genset_name:
+        disjoint = "disjoint" if constraints.get('disjoint') else ""
+        complete = "complete" if constraints.get('complete') else ""
+        modifiers = ' '.join(filter(None, [disjoint, complete])) or "(no modifiers)"
+        print(f"  Genset: {genset_name} [{modifiers}]")
+        
+        if constraints.get('disjoint_implicit'):
+            print(f"    (!) disjoint was implicitly applied")
+    else:
+        print(f"  Genset: (none)")
+
+
+def _print_relator_pattern(elements, constraints):
+    """Imprime detalhes do Relator_Pattern."""
+    relator = elements.get('relator', '?')
+    mediations = elements.get('mediations', [])
+    mediation_targets = elements.get('mediation_targets', [])
+    material_rel = elements.get('material_relation')
+    
+    print(f"  Relator: {relator}")
+    
+    if mediations:
+        print("  Mediations:")
+        for med in mediations:
+            target = med.get('target', '?')
+            card = format_cardinality(med.get('cardinality'))
+            print(f"    - @mediation -> {target} {card}")
+    
+    if material_rel:
+        first = material_rel.get('first_end', '?')
+        second = material_rel.get('second_end', '?')
+        rel_name = material_rel.get('relation_name', '')
+        card1 = format_cardinality(material_rel.get('first_cardinality'))
+        card2 = format_cardinality(material_rel.get('second_cardinality'))
+        
+        name_str = f" -- {rel_name} --" if rel_name else " <->"
+        print(f"  Material Relation: {first} {card1}{name_str} {card2} {second}")
+    else:
+        if len(mediation_targets) >= 2:
+            print("  Material Relation: (missing!)")
+
+
+def _print_mode_pattern(elements, constraints):
+    """Imprime detalhes do Mode_Pattern."""
+    mode = elements.get('mode', '?')
+    characterizations = elements.get('characterizations', [])
+    external_deps = elements.get('external_dependences', [])
+    
+    print(f"  Mode: {mode}")
+    
+    if characterizations:
+        print("  Characterizations:")
+        for char in characterizations:
+            target = char.get('target', '?')
+            card = format_cardinality(char.get('cardinality'))
+            print(f"    - @characterization -> {target} {card}")
+    
+    if external_deps:
+        print("  External Dependencies:")
+        for dep in external_deps:
+            target = dep.get('target', '?')
+            card = format_cardinality(dep.get('cardinality'))
+            print(f"    - @externalDependence -> {target} {card}")
+
+
+def _print_rolemixin_pattern(elements, constraints):
+    """Imprime detalhes do RoleMixin_Pattern."""
+    rolemixin = elements.get('rolemixin', '?')
+    gensets = elements.get('gensets', [])
+    role_specifics = elements.get('role_specifics', [])
+    
+    print(f"  RoleMixin: {rolemixin}")
+    
+    if role_specifics:
+        print(f"  Role Specifics: {', '.join(role_specifics)}")
+    
+    if gensets:
+        print("  Gensets:")
+        for g in gensets:
+            genset_name = g.get('name', '(anonymous)')
+            disjoint = "disjoint" if g.get('disjoint') else ""
+            complete = "complete" if g.get('complete') else ""
+            modifiers = ' '.join(filter(None, [disjoint, complete])) or "(no modifiers)"
+            specifics = g.get('specifics', [])
+            print(f"    - {genset_name} [{modifiers}]")
+            if specifics:
+                print(f"      Specifics: {', '.join(specifics)}")
+
 def main():
     '''
     Docstring for main
@@ -71,107 +310,37 @@ def main():
             print(f"  {pattern_type}: {count}")
 
     file_result = result.get("files", [{}])[0]
-
+    
+    # Contar estereótipos de classes e relações
     symbols = file_result.get("symbols", {})
+    classes = symbols.get("classes", [])
     relations = symbols.get("relations", [])
     
-    #TODO mudar esse print de lugar/jogar fora pra matixinha n brigar
-    if relations:
-        print("\n" + "=" * 60)
-        print("RELATIONS DETECTED")
-        print("=" * 60)
-        
-        # Separar relações internas e externas
-        internal_rels = [r for r in relations if r.get('node_type') == 'internal_relation']
-        external_rels = [r for r in relations if r.get('node_type') == 'external_relation']
-        
-        if internal_rels:
-            print("\n" + "-" * 40)
-            print("INTERNAL RELATIONS (within class bodies)")
-            print("-" * 40)
-            for rel in internal_rels:
-                source = rel.get('source_class', '?')
-                target = rel.get('second_end', '?')
-                stereotype = rel.get('relation_stereotype', 'none')
-                card1 = rel.get('first_cardinality', '*')
-                card2 = rel.get('second_cardinality', '*')
-                
-                print(f"\n  Source: {source}")
-                print(f"  Target: {target}")
-                print(f"  Stereotype: @{stereotype}" if stereotype != 'none' else "  Stereotype: (none)")
-                print(f"  Cardinality: [{card1}] -> [{card2}]")
-        
-        if external_rels:
-            print("\n" + "-" * 40)
-            print("EXTERNAL RELATIONS (between classes)")
-            print("-" * 40)
-            for rel in external_rels:
-                first = rel.get('first_end', '?')
-                second = rel.get('second_end', '?')
-                stereotype = rel.get('relation_stereotype', 'none')
-                card1 = rel.get('first_cardinality', '*')
-                card2 = rel.get('second_cardinality', '*')
-                
-                print(f"\n  {first} <-> {second}")
-                print(f"  Stereotype: @{stereotype}" if stereotype != 'none' else "  Stereotype: (none)")
-                print(f"  Cardinality: [{card1}] <-> [{card2}]")
-
-    # NOVA SEÇÃO: DETALHAMENTO DE ROLES
-    classes = symbols.get("classes", [])
-    role_classes = [c for c in classes if c.get('class_stereotype') == 'role']
+    # Contar estereótipos de classes (todos os que aparecem nos dados)
+    class_stereo_counts = {}
+    for c in classes:
+        stereo = c.get('class_stereotype')
+        if stereo:
+            class_stereo_counts[stereo] = class_stereo_counts.get(stereo, 0) + 1
     
-    if role_classes:
-        print("\n" + "=" * 60)
-        print("ROLES DETECTED")
-        print("=" * 60)
-        
-        for role_class in role_classes:
-            role_name = role_class.get('class_name')
-            specialization = role_class.get('specialization', {})
-            parents = specialization.get('parents', [])
-            body = role_class.get('body')
-            
-            print(f"\n {role_name}")
-            
-            if parents:
-                print(f"  Specializes: {', '.join(parents)}")
-            else:
-                print(f"  Specializes: (none)")
-            
-            # Verificar se tem corpo com conteúdo
-            if body and len(body) > 0:
-                print(f"  Declaration: with body")
-                
-                # Extrair atributos
-                attributes = [item for item in body if item.get('node_type') == 'attribute']
-                if attributes:
-                    print(f"  Attributes:")
-                    for attr in attributes:
-                        attr_name = attr.get('attribute_name')
-                        attr_type = attr.get('attribute_type')
-                        cardinality = attr.get('cardinality')
-                        
-                        if cardinality:
-                            card_value = cardinality.get('value', '*')
-                            print(f"    • {attr_name} : {attr_type} [{card_value}]")
-                        else:
-                            print(f"    • {attr_name} : {attr_type}")
-                
-                # Extrair relações internas
-                internal_relations = [item for item in body if item.get('node_type') == 'internal_relation']
-                if internal_relations:
-                    print(f"  Internal Relations:")
-                    for rel in internal_relations:
-                        stereotype = rel.get('relation_stereotype', 'none')
-                        target = rel.get('second_end')
-                        cardinality = rel.get('second_cardinality', '*')
-                        
-                        if stereotype != 'none':
-                            print(f"    • @{stereotype} -> {target} [{cardinality}]")
-                        else:
-                            print(f"    • (no stereotype) -> {target} [{cardinality}]")
-            else:
-                print(f"  Declaration: inline (no body)")
+    # Contar estereótipos de relações (todos os que aparecem nos dados)
+    relation_stereo_counts = {}
+    for r in relations:
+        stereo = r.get('relation_stereotype')
+        if stereo:
+            relation_stereo_counts[stereo] = relation_stereo_counts.get(stereo, 0) + 1
+    
+    # Imprimir contagem de estereótipos de classes (apenas > 0)
+    if class_stereo_counts:
+        print("\nClass Stereotypes:")
+        for stereo, count in sorted(class_stereo_counts.items()):
+            print(f"  @{stereo}: {count}")
+    
+    # Imprimir contagem de estereótipos de relações (apenas > 0)
+    if relation_stereo_counts:
+        print("\nRelation Stereotypes:")
+        for stereo, count in sorted(relation_stereo_counts.items()):
+            print(f"  @{stereo}: {count}")
 
     complete = file_result.get("patterns", [])
     incomplete = file_result.get("incomplete_patterns", [])
@@ -181,27 +350,14 @@ def main():
         print("COMPLETE PATTERNS")
         print("-" * 40)
         for pattern in complete:
-            print(f"\n✓ {pattern['pattern_type']}")
-            print(f"  Anchor: {pattern['anchor_class']} ({pattern['anchor_stereotype']})")
-            print(f"  Elements: {pattern['elements']}")
-            print(f"  Constraints: {pattern['constraints']}")
+            print_pattern(pattern, is_complete=True)
 
     if incomplete:
         print("\n" + "-" * 40)
         print("INCOMPLETE PATTERNS")
         print("-" * 40)
         for pattern in incomplete:
-            print(f"\n⚠ {pattern['pattern_type']}")
-            print(f"  Anchor: {pattern['anchor_class']} ({pattern['anchor_stereotype']})")
-            print(f"  Elements: {pattern['elements']}")
-            print(f"  Constraints: {pattern['constraints']}")
-            print(f"  Violations:")
-            for v in pattern.get("violations", []):
-                print(f"    - [{v['severity'].upper()}] {v['message']}")
-            print(f"  Suggestions:")
-            for s in pattern.get("suggestions", []):
-                print(f"    - {s['message']}")
-                print(f"      Code: {s['code_suggestion'][:50]}..." if len(s.get('code_suggestion', '')) > 50 else f"      Code: {s.get('code_suggestion', '')}")
+            print_pattern(pattern, is_complete=False)
 
     if "--json" in sys.argv:
         print("\n" + "=" * 60)

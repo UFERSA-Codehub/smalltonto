@@ -210,7 +210,6 @@ class SymbolTable:
             genset_def for genset_def in self.gensets.values()
             if genset_def.get('general') == class_name
         ]
-        
 
     def get_genset_for_specific(self, class_name: str) -> list[dict]:
         '''
@@ -563,7 +562,9 @@ class ParserSemantic:
                 violations.append({
                     "code": "MISSING_GENSET",
                     "severity": "warning",
-                    "message": f"Subkind_Pattern for '{kind_name}' should have a genset to formalize the generalization"
+                    "message": f"Subkind_Pattern for '{kind_name}' should have a genset to formalize the generalization",
+                    "line": kind_class.get('line'),
+                    "column": kind_class.get('column'),
                 })
                 suggestions.append({
                     "type": "coercion",
@@ -583,7 +584,9 @@ class ParserSemantic:
                     violations.append({
                         "code": "INCOMPLETE_GENSET_SPECIFICS",
                         "severity": "warning",
-                        "message": f"Genset '{genset_def.get('genset_name')}' is missing subkinds: {', '.join(missing_specifics)}"
+                        "message": f"Genset '{genset_def.get('genset_name')}' is missing subkinds: {', '.join(missing_specifics)}",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
                     })
                     all_specifics = list(genset_specifics | detected_specifics)
                     suggestions.append({
@@ -602,7 +605,9 @@ class ParserSemantic:
                     violations.append({
                         "code": "MISSING_DISJOINT",
                         "severity": "warning",
-                        "message": f"Subkind_Pattern genset '{genset_def.get('genset_name')}' should have 'disjoint' keyword"
+                        "message": f"Subkind_Pattern genset '{genset_def.get('genset_name')}' is missing 'disjoint' keyword (implicitly applied). Please add it explicitly.",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
                     })
                     suggestions.append({
                         "type": "coercion",
@@ -612,8 +617,11 @@ class ParserSemantic:
                     })
 
             # Construir o dicionário das propriedades do genset
+            # Disjoint is always True when genset exists (implicit if not declared)
+            disjoint_explicit = genset_def.get('disjoint', False) if genset_def else False
             constraints = {
-                "disjoint": genset_def.get('disjoint', False) if genset_def else False,
+                "disjoint": True if genset_def else False,
+                "disjoint_implicit": genset_def is not None and not disjoint_explicit,
                 "complete": genset_def.get('complete', False) if genset_def else False
             }
 
@@ -637,6 +645,18 @@ class ParserSemantic:
 
             if violations:
                 self.incomplete_patterns.append(pattern)
+                # Copy violations to top-level warnings for the WarningList component
+                # Pair each violation with its corresponding suggestion (same index)
+                for i, violation in enumerate(violations):
+                    warning = {
+                        **violation,
+                        "pattern_type": "Subkind_Pattern",
+                        "anchor_class": kind_name,
+                    }
+                    # Add suggestion if available at the same index
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
             else:
                 self.patterns.append(pattern)
 
@@ -681,8 +701,8 @@ class ParserSemantic:
                     node_type = item.get('node_type')
                     
                     if node_type == 'attribute':
-                        attr_name = item.get('attr_name')
-                        attr_type = item.get('attr_type')
+                        attr_name = item.get('attribute_name')
+                        attr_type = item.get('attribute_type')
                         
                         # VALIDAÇÃO DE TIPO: Verificar se o tipo existe na tabela de símbolos
                         if attr_type and not self.symbol_table.resolve_type(attr_type):
@@ -770,7 +790,9 @@ class ParserSemantic:
                     violations.append({
                         "code": "INCOMPLETE_GENSET_SPECIFICS",
                         "severity": "warning",
-                        "message": f"Genset '{genset_def.get('genset_name')}' is missing roles: {', '.join(missing_specifics)}"
+                        "message": f"Genset '{genset_def.get('genset_name')}' is missing roles: {', '.join(missing_specifics)}",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
                     })
                     all_specifics = list(genset_specifics | detected_specifics)
                     suggestions.append({
@@ -780,7 +802,28 @@ class ParserSemantic:
                         "code_suggestion": self._suggest_genset(
                             parent_class,
                             all_specifics,
-                            disjoint=genset_def.get('disjoint', False),
+                            disjoint=False,  # Roles should not have disjoint
+                            complete=genset_def.get('complete', False)
+                        )
+                    })
+                
+                # Roles should NOT have disjoint - warn if applied
+                if genset_def.get('disjoint'):
+                    violations.append({
+                        "code": "ROLE_GENSET_HAS_DISJOINT",
+                        "severity": "warning",
+                        "message": f"Genset '{genset_def.get('genset_name')}' for roles should NOT use 'disjoint' keyword (roles are not mutually exclusive)",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
+                    })
+                    suggestions.append({
+                        "type": "coercion",
+                        "action": "remove_keyword",
+                        "message": "Remove 'disjoint' keyword from genset (not applicable to roles)",
+                        "code_suggestion": self._suggest_genset(
+                            parent_class,
+                            list(genset_specifics),
+                            disjoint=False,
                             complete=genset_def.get('complete', False)
                         )
                     })
@@ -815,7 +858,7 @@ class ParserSemantic:
                 "general": parent_class,
                 "specifics": role_names,
                 "genset": genset_def.get('genset_name') if genset_def else None,
-                "roles_details": roles_info  # Incluir detalhes dos corpos
+                "roles_details": roles_info
             }
             
             # Criar o padrão
@@ -832,6 +875,16 @@ class ParserSemantic:
             # Adicionar à lista apropriada
             if violations:
                 self.incomplete_patterns.append(pattern)
+                # Copiar violations para warnings de nível superior
+                for i, violation in enumerate(violations):
+                    warning = {
+                        **violation,
+                        "pattern_type": "Role_Pattern",
+                        "anchor_class": parent_class,
+                    }
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
             else:
                 self.patterns.append(pattern)
 
@@ -907,12 +960,15 @@ class ParserSemantic:
                 genset_specifics = set(genset_def.get('specifics', []))
                 detected_specifics = set(phase_names)
                 
-                # VALIDAÇÃO CRÍTICA: Genset de phases DEVE ter disjoint (ERROR)
+                # VALIDAÇÃO: Genset de phases DEVE ter disjoint
+                # Se não tiver, aplicar implicitamente com WARNING
                 if not genset_def.get('disjoint'):
                     violations.append({
                         "code": "MISSING_DISJOINT",
-                        "severity": "error",
-                        "message": f"Phase_Pattern genset '{genset_def.get('genset_name')}' MUST have 'disjoint' keyword (phases are mutually exclusive)"
+                        "severity": "warning",
+                        "message": f"Phase_Pattern genset '{genset_def.get('genset_name')}' is missing 'disjoint' keyword (implicitly applied). Please add it explicitly.",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
                     })
                     suggestions.append({
                         "type": "coercion",
@@ -927,7 +983,9 @@ class ParserSemantic:
                     violations.append({
                         "code": "INCOMPLETE_GENSET_SPECIFICS",
                         "severity": "warning",
-                        "message": f"Genset '{genset_def.get('genset_name')}' is missing phases: {', '.join(missing_specifics)}"
+                        "message": f"Genset '{genset_def.get('genset_name')}' is missing phases: {', '.join(missing_specifics)}",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
                     })
                     all_specifics = list(genset_specifics | detected_specifics)
                     suggestions.append({
@@ -943,8 +1001,11 @@ class ParserSemantic:
                     })
             
             # Construir constraints
+            # Disjoint is always True for phases when genset exists (implicit if not declared)
+            disjoint_explicit = genset_def.get('disjoint', False) if genset_def else False
             constraints = {
-                "disjoint": genset_def.get('disjoint', False) if genset_def else False,
+                "disjoint": True if genset_def else False,
+                "disjoint_implicit": genset_def is not None and not disjoint_explicit,
                 "complete": genset_def.get('complete', False) if genset_def else False,
                 "has_genset": genset_def is not None
             }
@@ -970,6 +1031,16 @@ class ParserSemantic:
             # Adicionar à lista apropriada
             if violations:
                 self.incomplete_patterns.append(pattern)
+                # Copy violations to top-level warnings for the WarningList component
+                for i, violation in enumerate(violations):
+                    warning = {
+                        **violation,
+                        "pattern_type": "Phase_Pattern",
+                        "anchor_class": parent_class,
+                    }
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
             else:
                 self.patterns.append(pattern)
 
@@ -1067,12 +1138,12 @@ class ParserSemantic:
                             "message": f"Mediation target '{target}' in relator '{relator_name}' does not exist in symbol table"
                         })
             
-            # VALIDAÇÃO 6: Verificar se existe relação @material externa correspondente → WARNING
+            # VALIDAÇÃO 6: Verificar se existe relação @material externa correspondente
+            material_relation = None
             if len(mediation_targets) >= 2:
                 material_relations = self.symbol_table.get_relations_by_stereotype('material')
                 
                 # Verificar se existe material conectando os alvos das mediations
-                found_material = False
                 for material_rel in material_relations:
                     if material_rel.get('node_type') == 'external_relation':
                         first_end = material_rel.get('first_end')
@@ -1081,10 +1152,16 @@ class ParserSemantic:
                         # Verificar se conecta os mesmos participantes (qualquer ordem)
                         if (first_end in mediation_targets and second_end in mediation_targets and
                             first_end != second_end):
-                            found_material = True
+                            material_relation = {
+                                "first_end": first_end,
+                                "second_end": second_end,
+                                "relation_name": material_rel.get('relation_name'),
+                                "first_cardinality": material_rel.get('first_cardinality'),
+                                "second_cardinality": material_rel.get('second_cardinality')
+                            }
                             break
                 
-                if not found_material:
+                if material_relation is None:
                     violations.append({
                         "code": "MISSING_MATERIAL_RELATION",
                         "severity": "warning",
@@ -1103,7 +1180,7 @@ class ParserSemantic:
             constraints = {
                 "has_body": len(body) > 0,
                 "mediation_count": len(mediations),
-                "has_material_relation": len(mediation_targets) >= 2  # Simplificado
+                "has_material_relation": material_relation is not None
             }
             
             # Construir elementos do padrão
@@ -1116,7 +1193,8 @@ class ParserSemantic:
                     }
                     for m in mediations
                 ],
-                "mediation_targets": mediation_targets
+                "mediation_targets": mediation_targets,
+                "material_relation": material_relation
             }
             
             # Criar o padrão
@@ -1133,6 +1211,16 @@ class ParserSemantic:
             # Adicionar à lista apropriada
             if violations:
                 self.incomplete_patterns.append(pattern)
+                # Copiar violations para warnings de nível superior
+                for i, violation in enumerate(violations):
+                    warning = {
+                        **violation,
+                        "pattern_type": "Relator_Pattern",
+                        "anchor_class": relator_name,
+                    }
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
             else:
                 self.patterns.append(pattern)
 
@@ -1295,6 +1383,16 @@ class ParserSemantic:
             # Adicionar à lista apropriada
             if violations:
                 self.incomplete_patterns.append(pattern)
+                # Copiar violations para warnings de nível superior
+                for i, violation in enumerate(violations):
+                    warning = {
+                        **violation,
+                        "pattern_type": "Mode_Pattern",
+                        "anchor_class": mode_name,
+                    }
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
             else:
                 self.patterns.append(pattern)
 
@@ -1432,4 +1530,16 @@ class ParserSemantic:
                 self.incomplete_patterns.append(pattern)
             else:
                 self.patterns.append(pattern)
+            
+            # Copiar violations para warnings de nível superior
+            if violations:
+                for i, violation in enumerate(violations):
+                    warning = {
+                        **violation,
+                        "pattern_type": "RoleMixin_Pattern",
+                        "anchor_class": rolemixin_name,
+                    }
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
         

@@ -64,14 +64,14 @@ class MyParser:
 
     def p_import_statement(self, p):
         """import_statement : KEYWORD_IMPORT module_name"""
-        p[0] = {"node_type": "import_statement", "module_name": p[2]}
+        p[0] = {"node_type": "import_statement", "module_name": p[2], "line": p.lineno(2), "column": self.find_column(p, 2)}
 
     # ======================================= PACKAGE DECLARATION & CONTENT ======================================= #
     # Declaração do package e seu conteúdo
 
     def p_package_declaration(self, p):
         """package_declaration : KEYWORD_PACKAGE package_name"""
-        p[0] = {"node_type": "package_declaration", "package_name": p[2]}
+        p[0] = {"node_type": "package_declaration", "package_name": p[2], "line": p.lineno(2), "column": self.find_column(p, 2)}
 
     def p_package_content(self, p):
         """package_content : definition_list
@@ -133,7 +133,15 @@ class MyParser:
             specialization = p[3]
             body = p[5]
 
-        p[0] = {"node_type": "class_definition", "class_stereotype": stereotype, "class_name": name, "specialization": specialization, "body": body}
+        p[0] = {
+            "node_type": "class_definition",
+            "class_stereotype": stereotype,
+            "class_name": name,
+            "specialization": specialization,
+            "body": body,
+            "line": p.lineno(2),
+            "column": self.find_column(p, 2),
+        }
 
     def p_class_stereotype(self, p):
         """class_stereotype : CLASS_EVENT
@@ -197,6 +205,8 @@ relation_operator_right cardinality class_name
                 "operator_right": p[5],
                 "second_cardinality": p[6],
                 "second_end": p[7],
+                "line": p.lineno(4),
+                "column": self.find_column(p, 4),
             }
         elif len(p) == 7:  # Formato 1: nomeada sem cardinalidade inicial
             p[0] = {
@@ -209,6 +219,8 @@ relation_operator_right cardinality class_name
                 "operator_right": p[4],
                 "second_cardinality": p[5],
                 "second_end": p[6],
+                "line": p.lineno(3),
+                "column": self.find_column(p, 3),
             }
         elif len(p) == 6:  # Formato 4: sem nome com cardinalidade inicial
             p[0] = {
@@ -221,6 +233,8 @@ relation_operator_right cardinality class_name
                 "operator_right": None,
                 "second_cardinality": p[4],
                 "second_end": p[5],
+                "line": p.lineno(5),
+                "column": self.find_column(p, 5),
             }
         else:  # len(p) == 5, Formato 3: sem nome sem cardinalidade inicial
             p[0] = {
@@ -233,6 +247,8 @@ relation_operator_right cardinality class_name
                 "operator_right": None,
                 "second_cardinality": p[3],
                 "second_end": p[4],
+                "line": p.lineno(4),
+                "column": self.find_column(p, 4),
             }
 
     def p_relation_stereotype_optional(self, p):
@@ -319,6 +335,8 @@ relation_operator_right cardinality class_name
             "attribute_type": attr_type,
             "cardinality": cardinality,
             "meta_attributes": meta_attributes,
+            "line": p.lineno(1),
+            "column": self.find_column(p, 1),
         }
 
     # ======================================= TYPE REFERENCE ======================================= #
@@ -407,7 +425,14 @@ relation_operator_right cardinality class_name
             specialization = p[3]
             body = p[5]
 
-        p[0] = {"node_type": "datatype_definition", "datatype_name": name, "specialization": specialization, "body": body}
+        p[0] = {
+            "node_type": "datatype_definition",
+            "datatype_name": name,
+            "specialization": specialization,
+            "body": body,
+            "line": p.lineno(2),
+            "column": self.find_column(p, 2),
+        }
 
     def p_datatype_body(self, p):
         """datatype_body : attribute
@@ -435,7 +460,14 @@ relation_operator_right cardinality class_name
             specialization = p[3]
             values = p[5]
 
-        p[0] = {"node_type": "enum_definition", "enum_name": name, "specialization": specialization, "values": values}
+        p[0] = {
+            "node_type": "enum_definition",
+            "enum_name": name,
+            "specialization": specialization,
+            "values": values,
+            "line": p.lineno(2),
+            "column": self.find_column(p, 2),
+        }
 
     def p_enum_values(self, p):
         """enum_values : enum_value
@@ -473,6 +505,8 @@ relation_operator_right cardinality class_name
             "general": body["general"],
             "categorizer": body["categorizer"],
             "specifics": body["specifics"],
+            "line": p.lineno(3),
+            "column": self.find_column(p, 3),
         }
 
     def p_genset_short(self, p):
@@ -491,6 +525,8 @@ relation_operator_right cardinality class_name
             "general": general,
             "categorizer": None,
             "specifics": specifics,
+            "line": p.lineno(3),
+            "column": self.find_column(p, 3),
         }
 
     def p_genset_modifiers(self, p):
@@ -545,6 +581,8 @@ relation_operator_left relation_name relation_operator_right cardinality class_n
                 "operator_right": p[7],
                 "second_cardinality": p[8],
                 "second_end": p[9],
+                "line": p.lineno(3),
+                "column": self.find_column(p, 3),
             }
         else:  # Formato 2: sem cardinalidade inicial (len=9)
             p[0] = {
@@ -557,6 +595,8 @@ relation_operator_left relation_name relation_operator_right cardinality class_n
                 "operator_right": p[6],
                 "second_cardinality": p[7],
                 "second_end": p[8],
+                "line": p.lineno(3),
+                "column": self.find_column(p, 3),
             }
 
     # ======================================= GENERIC RULES ======================================= #
@@ -580,38 +620,45 @@ relation_operator_left relation_name relation_operator_right cardinality class_n
     def p_class_name(self, p):
         """class_name : CLASS_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_relation_name(self, p):
         """relation_name : RELATION_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_instance_name(self, p):
         """instance_name : INSTANCE_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_attribute_name(self, p):
         """attribute_name : IDENTIFIER
         | RELATION_NAME
         | CLASS_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_package_name(self, p):
         """package_name : IDENTIFIER
         | CLASS_NAME
         | RELATION_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_module_name(self, p):
         """module_name : IDENTIFIER
         | CLASS_NAME
         | RELATION_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_genset_name(self, p):
         """genset_name : IDENTIFIER
         | CLASS_NAME
         | RELATION_NAME"""
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_class_name_list(self, p):
         """class_name_list : class_name
