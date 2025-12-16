@@ -536,8 +536,6 @@ class ParserSemantic:
             f'}}'
         )
     
-    #TODO verificar se essa regra vale APENAS para kinds e subkinds
-    #TODO verificar se essa regra recebe disjoint obrigatoriamente e complete opcionalmente
     def _detect_subkind_patterns(self) -> None:
         '''
         Docstring for _detect_subkind_patterns
@@ -545,42 +543,70 @@ class ParserSemantic:
         :param self: Description
         '''
         kinds = self.symbol_table.get_classes_by_stereotype('kind')
-
-        for kind_class in kinds:
-            kind_name = kind_class.get('class_name')
-
-            subkind_children = self.symbol_table.get_children_of(kind_name, stereotype='subkind')
-
+        subkinds_as_parents = self.symbol_table.get_classes_by_stereotype('subkind')
+        
+        potential_parents = list(kinds) + list(subkinds_as_parents)
+        
+        for parent_class in potential_parents:
+            parent_name = parent_class.get('class_name')
+            parent_stereotype = parent_class.get('class_stereotype')
+            
+            # Buscar subkinds que especializam deste pai
+            subkind_children = self.symbol_table.get_children_of(parent_name, stereotype='subkind')
+            
             if not subkind_children:
                 continue
-
+            
             subkind_names = [child.get('class_name') for child in subkind_children]
-            genset_def = self._find_matching_genset(kind_name, subkind_names)
-
+            
+            # VALIDAÇÃO 1: Genset com apenas 1 subkind não faz sentido
+            if len(subkind_names) == 1:
+                # Verificar se existe genset para esse único subkind
+                single_subkind = subkind_names[0]
+                gensets_for_single = self.symbol_table.get_genset_for_specific(single_subkind)
+                
+                for genset in gensets_for_single:
+                    if genset.get('general') == parent_name and len(genset.get('specifics', [])) == 1:
+                        self.warnings.append({
+                            "code": "SUBKIND_SINGLE_IN_GENSET",
+                            "severity": "warning",
+                            "message": f"Genset '{genset.get('genset_name')}' has only one subkind '{single_subkind}'. Gensets should partition multiple specifics.",
+                            "pattern_type": "Subkind_Pattern",
+                            "anchor_class": parent_name,
+                            "line": genset.get('line'),
+                            "column": genset.get('column'),
+                        })
+                
+                # Não criar pattern para 1 único subkind
+                continue
+            
+            # Buscar genset que formalize este grupo de subkinds
+            genset_def = self._find_matching_genset(parent_name, subkind_names)
+            
             violations = []
             suggestions = []
-
+            
+            # VALIDAÇÃO 2: Múltiplos subkinds sem genset → WARNING
             if genset_def is None:
                 violations.append({
                     "code": "MISSING_GENSET",
                     "severity": "warning",
-                    "message": f"Subkind_Pattern for '{kind_name}' should have a genset to formalize the generalization",
-                    "line": kind_class.get('line'),
-                    "column": kind_class.get('column'),
+                    "message": f"Subkind_Pattern for '{parent_name}' should have a genset to formalize the generalization",
+                    "line": parent_class.get('line'),
+                    "column": parent_class.get('column'),
                 })
                 suggestions.append({
                     "type": "coercion",
                     "action": "insert_code",
                     "message": "Add a genset to formalize the subkind pattern",
-                    "code_suggestion": self._suggest_genset(kind_name, subkind_names, disjoint=True
-                    )
+                    "code_suggestion": self._suggest_genset(parent_name, subkind_names, disjoint=True)
                 })
             else:
                 # Genset existe, verificar propriedades
                 genset_specifics = set(genset_def.get('specifics', []))
                 detected_specifics = set(subkind_names)
-
-                # Checar se todas as específicas estão no genset
+                
+                # VALIDAÇÃO 3: Checar se todas as específicas estão no genset
                 missing_specifics = detected_specifics - genset_specifics
                 if missing_specifics:
                     violations.append({
@@ -596,18 +622,19 @@ class ParserSemantic:
                         "action": "modify_code",
                         "message": f"Update genset to include all subkinds",
                         "code_suggestion": self._suggest_genset(
-                            kind_name,
+                            parent_name,
                             all_specifics,
-                            disjoint=genset_def.get('disjoint', True),
+                            disjoint=genset_def.get('disjoint', False),
                             complete=genset_def.get('complete', False)
                         )
                     })
-
+                
+                # VALIDAÇÃO 4: Genset de subkinds deve ter 'disjoint' explícito
                 if not genset_def.get('disjoint'):
                     violations.append({
                         "code": "MISSING_DISJOINT",
                         "severity": "warning",
-                        "message": f"Subkind_Pattern genset '{genset_def.get('genset_name')}' is missing 'disjoint' keyword (implicitly applied). Please add it explicitly.",
+                        "message": f"Subkind_Pattern genset '{genset_def.get('genset_name')}' should have 'disjoint' keyword (subkinds are mutually exclusive)",
                         "line": genset_def.get('line'),
                         "column": genset_def.get('column'),
                     })
@@ -617,54 +644,123 @@ class ParserSemantic:
                         "message": "Add 'disjoint' keyword to genset",
                         "code_suggestion": f"disjoint genset {genset_def.get('genset_name')} {{ ... }}"
                     })
-
-            # Construir o dicionário das propriedades do genset
-            # Disjoint is always True when genset exists (implicit if not declared)
-            disjoint_explicit = genset_def.get('disjoint', False) if genset_def else False
+            
+            # VALIDAÇÃO 5: Verificar se subkinds estão em múltiplos gensets
+            for subkind_name in subkind_names:
+                gensets_for_subkind = self.symbol_table.get_genset_for_specific(subkind_name)
+                
+                if len(gensets_for_subkind) > 1:
+                    genset_names = [g.get('genset_name') for g in gensets_for_subkind]
+                    violations.append({
+                        "code": "SUBKIND_IN_MULTIPLE_GENSETS",
+                        "severity": "warning",
+                        "message": f"Subkind '{subkind_name}' appears in multiple gensets: {', '.join(genset_names)}. This may cause inconsistencies."
+                    })
+            
+            # VALIDAÇÃO 6: Validar corpo dos subkinds (atributos/relações)
+            subkinds_details = []
+            for subkind_child in subkind_children:
+                subkind_name = subkind_child.get('class_name')
+                body = subkind_child.get('body')
+                
+                subkind_info = {
+                    "name": subkind_name,
+                    "has_body": body is not None and len(body) > 0
+                }
+                
+                # Verificar corpo vazio {}
+                if body is not None and len(body) == 0:
+                    self.warnings.append({
+                        "code": "SUBKIND_WITH_EMPTY_BRACES",
+                        "severity": "warning",
+                        "message": f"Subkind '{subkind_name}' has empty braces. Consider removing them or adding content",
+                        "pattern_type": "Subkind_Pattern",
+                        "anchor_class": parent_name,
+                    })
+                
+                # Processar atributos
+                if body and len(body) > 0:
+                    attributes = []
+                    internal_relations = []
+                    
+                    for item in body:
+                        node_type = item.get('node_type')
+                        
+                        if node_type == 'attribute':
+                            attr_name = item.get('attribute_name')
+                            attr_type = item.get('attribute_type')
+                            
+                            # Validar tipo
+                            if attr_type and not self.symbol_table.resolve_type(attr_type):
+                                self.errors.append({
+                                    "code": "SUBKIND_ATTRIBUTE_TYPE_NOT_FOUND",
+                                    "severity": "error",
+                                    "message": f"Subkind '{subkind_name}' attribute '{attr_name}' has undefined type '{attr_type}'"
+                                })
+                            
+                            attributes.append({
+                                "name": attr_name,
+                                "type": attr_type,
+                                "cardinality": item.get('cardinality')
+                            })
+                        
+                        elif node_type == 'internal_relation':
+                            internal_relations.append({
+                                "stereotype": item.get('relation_stereotype'),
+                                "target": item.get('second_end'),
+                                "cardinality": item.get('second_cardinality')
+                            })
+                    
+                    if attributes:
+                        subkind_info["attributes"] = attributes
+                    if internal_relations:
+                        subkind_info["internal_relations"] = internal_relations
+                
+                subkinds_details.append(subkind_info)
+            
+            # Construir constraints
+            # Não assumir disjoint implícito - deve ser explícito
             constraints = {
-                "disjoint": True if genset_def else False,
-                "disjoint_implicit": genset_def is not None and not disjoint_explicit,
-                "complete": genset_def.get('complete', False) if genset_def else False
+                "disjoint": genset_def.get('disjoint', False) if genset_def else False,
+                "complete": genset_def.get('complete', False) if genset_def else False,
+                "has_genset": genset_def is not None
             }
-
-            # Construir o dicionário dos elementos do genset
+            
+            # Construir elementos do padrão
             elements = {
-                "general": kind_name,
+                "general": parent_name,
+                "general_stereotype": parent_stereotype,
                 "specifics": subkind_names,
-                "genset": genset_def.get('genset_name') if genset_def else None
+                "genset": genset_def.get('genset_name') if genset_def else None,
+                "subkinds_details": subkinds_details
             }
-
+            
             # Criar o padrão e adicionar à lista apropriada
             pattern = self._create_pattern(
                 pattern_type="Subkind_Pattern",
-                anchor_class=kind_name,
-                anchor_stereotype="kind",
+                anchor_class=parent_name,
+                anchor_stereotype=parent_stereotype,
                 elements=elements,
                 constraints=constraints,
                 violations=violations,
                 suggestions=suggestions
             )
-
+            
             if violations:
                 self.incomplete_patterns.append(pattern)
-                # Copy violations to top-level warnings for the WarningList component
-                # Pair each violation with its corresponding suggestion (same index)
+                # Copy violations to top-level warnings
                 for i, violation in enumerate(violations):
                     warning = {
                         **violation,
                         "pattern_type": "Subkind_Pattern",
-                        "anchor_class": kind_name,
+                        "anchor_class": parent_name,
                     }
-                    # Add suggestion if available at the same index
                     if i < len(suggestions):
                         warning["suggestion"] = suggestions[i]
                     self.warnings.append(warning)
             else:
                 self.patterns.append(pattern)
 
-    #TODO verificar se o genset do roles tem mínimo de roles
-    #TODO verificar se essa regra se aplica para TODOS os estereótipos de classe 
-    #TODO verificar se essa regra recebe complete opcionalmente e rejeita disjoint
     def _detect_role_patterns(self) -> None:
         '''
         Docstring for _detect_role_patterns
@@ -673,6 +769,15 @@ class ParserSemantic:
         '''
         # Buscar todas as classes com estereótipo 'role'
         all_roles = self.symbol_table.get_classes_by_stereotype('role')
+        
+        # Buscar possíveis parents válidos para roles
+        kinds = self.symbol_table.get_classes_by_stereotype('kind')
+        subkinds = self.symbol_table.get_classes_by_stereotype('subkind')
+        categories = self.symbol_table.get_classes_by_stereotype('category')
+        roles_as_parents = all_roles  # Role pode especializar de outro role
+        
+        valid_parent_stereotypes = {'kind', 'subkind', 'category', 'role', 'roleMixin'}
+        invalid_parent_stereotypes = {'phase', 'mode', 'relator'}
         
         # Agrupar roles por sua classe pai (general)
         roles_by_parent = {}
@@ -684,17 +789,49 @@ class ParserSemantic:
             parents = role_class.get('specialization', {}).get('parents', [])
             body = role_class.get('body')
             
-            # Validação: role sem especialização é uma violação crítica
+            # VALIDAÇÃO 1: Role sem especialização → ERROR
             if not parents:
                 roles_without_specialization.append(role_name)
                 continue
             
-            # VALIDAÇÃO DE CORPO: Verificar se há chaves vazias {}
+            # VALIDAÇÃO 2: Verificar se parent é válido
+            primary_parent = parents[0]
+            parent_class = self.symbol_table.get_class(primary_parent)
+            
+            if parent_class:
+                parent_stereotype = parent_class.get('class_stereotype')
+                
+                # ERROR se parent for phase, mode, relator
+                if parent_stereotype in invalid_parent_stereotypes:
+                    self.errors.append({
+                        "code": "ROLE_INVALID_PARENT",
+                        "severity": "error",
+                        "message": f"Role '{role_name}' cannot specialize from '{parent_stereotype}' ('{primary_parent}'). Roles must specialize from kind, subkind, category, or another role.",
+                        "line": role_class.get('line'),
+                        "column": role_class.get('column'),
+                    })
+                    continue
+                
+                # WARNING se parent não for valid_parent_stereotypes
+                if parent_stereotype not in valid_parent_stereotypes:
+                    self.warnings.append({
+                        "code": "ROLE_UNUSUAL_PARENT",
+                        "severity": "warning",
+                        "message": f"Role '{role_name}' specializes from '{parent_stereotype}' ('{primary_parent}'). Typically roles specialize from kind, subkind, or category.",
+                        "pattern_type": "Role_Pattern",
+                        "anchor_class": primary_parent,
+                        "line": role_class.get('line'),
+                        "column": role_class.get('column'),
+                    })
+            
+            # VALIDAÇÃO 3: Corpo vazio {} → WARNING
             if body is not None and len(body) == 0:
                 self.warnings.append({
                     "code": "ROLE_WITH_EMPTY_BRACES",
                     "severity": "warning",
-                    "message": f"Role '{role_name}' has empty braces. Consider removing them or adding content"
+                    "message": f"Role '{role_name}' has empty braces. Consider removing them or adding content",
+                    "pattern_type": "Role_Pattern",
+                    "anchor_class": primary_parent,
                 })
             
             # Processar corpo da role (se houver)
@@ -709,7 +846,7 @@ class ParserSemantic:
                         attr_name = item.get('attribute_name')
                         attr_type = item.get('attribute_type')
                         
-                        # VALIDAÇÃO DE TIPO: Verificar se o tipo existe na tabela de símbolos
+                        # VALIDAÇÃO: Verificar se o tipo existe
                         if attr_type and not self.symbol_table.resolve_type(attr_type):
                             self.errors.append({
                                 "code": "ROLE_ATTRIBUTE_TYPE_NOT_FOUND",
@@ -724,8 +861,20 @@ class ParserSemantic:
                         })
                     
                     elif node_type == 'internal_relation':
+                        rel_stereotype = item.get('relation_stereotype')
+                        
+                        # VALIDAÇÃO: Roles não devem ter @mediation ou @characterization
+                        if rel_stereotype in ['mediation', 'characterization', 'externalDependence']:
+                            self.warnings.append({
+                                "code": "ROLE_INVALID_RELATION_STEREOTYPE",
+                                "severity": "warning",
+                                "message": f"Role '{role_name}' has @{rel_stereotype} relation. This stereotype is typically used in relators/modes, not roles.",
+                                "pattern_type": "Role_Pattern",
+                                "anchor_class": primary_parent,
+                            })
+                        
                         internal_relations.append({
-                            "stereotype": item.get('relation_stereotype'),
+                            "stereotype": rel_stereotype,
                             "target": item.get('second_end'),
                             "cardinality": item.get('second_cardinality')
                         })
@@ -738,9 +887,6 @@ class ParserSemantic:
             }
             
             # Agrupar roles pela primeira classe pai
-            # (roles podem ter múltiplos pais, mas focamos no principal)
-            primary_parent = parents[0]
-            
             if primary_parent not in roles_by_parent:
                 roles_by_parent[primary_parent] = []
             roles_by_parent[primary_parent].append(role_name)
@@ -755,8 +901,27 @@ class ParserSemantic:
         
         # Detectar padrões para cada grupo de roles
         for parent_class, role_names in roles_by_parent.items():
-            # Se houver apenas um role, ainda criamos um pattern (pode ser válido)
             if len(role_names) == 0:
+                continue
+            
+            # VALIDAÇÃO: Genset com apenas 1 role não faz sentido
+            if len(role_names) == 1:
+                single_role = role_names[0]
+                gensets_for_single = self.symbol_table.get_genset_for_specific(single_role)
+                
+                for genset in gensets_for_single:
+                    if genset.get('general') == parent_class and len(genset.get('specifics', [])) == 1:
+                        self.warnings.append({
+                            "code": "ROLE_SINGLE_IN_GENSET",
+                            "severity": "warning",
+                            "message": f"Genset '{genset.get('genset_name')}' has only one role '{single_role}'. Gensets should partition multiple roles.",
+                            "pattern_type": "Role_Pattern",
+                            "anchor_class": parent_class,
+                            "line": genset.get('line'),
+                            "column": genset.get('column'),
+                        })
+                
+                # Não criar pattern para 1 único role
                 continue
             
             # Buscar genset que formalize este grupo de roles
@@ -765,8 +930,8 @@ class ParserSemantic:
             violations = []
             suggestions = []
             
-            # Se houver múltiplos roles, sugerir genset (não obrigatório)
-            if len(role_names) > 1 and genset_def is None:
+            # VALIDAÇÃO: Múltiplos roles sem genset → WARNING (opcional)
+            if genset_def is None:
                 violations.append({
                     "code": "SUGGESTED_GENSET",
                     "severity": "warning",
@@ -779,13 +944,11 @@ class ParserSemantic:
                     "code_suggestion": self._suggest_genset(
                         parent_class, 
                         role_names, 
-                        disjoint=False,  # Roles não precisam ser disjoint por padrão
-                        complete=False   # Roles não precisam ser complete
+                        disjoint=False,  # Roles não precisam ser disjoint
+                        complete=False   # Complete é opcional
                     )
                 })
-            
-            # Se genset existe, validar consistência
-            if genset_def is not None:
+            else:
                 genset_specifics = set(genset_def.get('specifics', []))
                 detected_specifics = set(role_names)
                 
@@ -807,17 +970,17 @@ class ParserSemantic:
                         "code_suggestion": self._suggest_genset(
                             parent_class,
                             all_specifics,
-                            disjoint=False,  # Roles should not have disjoint
+                            disjoint=False,
                             complete=genset_def.get('complete', False)
                         )
                     })
                 
-                # Roles should NOT have disjoint - warn if applied
+                # VALIDAÇÃO: Roles NÃO devem ter disjoint
                 if genset_def.get('disjoint'):
                     violations.append({
                         "code": "ROLE_GENSET_HAS_DISJOINT",
                         "severity": "warning",
-                        "message": f"Genset '{genset_def.get('genset_name')}' for roles should NOT use 'disjoint' keyword (roles are not mutually exclusive)",
+                        "message": f"Genset '{genset_def.get('genset_name')}' for roles should NOT use 'disjoint' keyword (roles can overlap - e.g., a person can be both Student and Employee)",
                         "line": genset_def.get('line'),
                         "column": genset_def.get('column'),
                     })
@@ -832,6 +995,31 @@ class ParserSemantic:
                             complete=genset_def.get('complete', False)
                         )
                     })
+                
+                # INFO: Complete em genset de roles (semântica especial)
+                if genset_def.get('complete'):
+                    violations.append({
+                        "code": "ROLE_GENSET_COMPLETE",
+                        "severity": "info",
+                        "message": f"Genset '{genset_def.get('genset_name')}' is 'complete'. This means every '{parent_class}' instance must play at least one of these roles: {', '.join(role_names)}. Ensure this is intentional.",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
+                    })
+            
+            # VALIDAÇÃO: Roles em múltiplos gensets (informativo, não erro)
+            for role_name in role_names:
+                gensets_for_role = self.symbol_table.get_genset_for_specific(role_name)
+                
+                if len(gensets_for_role) > 1:
+                    genset_names = [g.get('genset_name') for g in gensets_for_role]
+                    # Apenas INFO - roles podem estar em múltiplos gensets (perspectivas diferentes)
+                    self.warnings.append({
+                        "code": "ROLE_IN_MULTIPLE_GENSETS",
+                        "severity": "info",
+                        "message": f"Role '{role_name}' appears in multiple gensets: {', '.join(genset_names)}. This is valid (roles can overlap across different partitions).",
+                        "pattern_type": "Role_Pattern",
+                        "anchor_class": parent_class,
+                    })
             
             # Construir informações do corpo para cada role
             roles_info = []
@@ -841,11 +1029,9 @@ class ParserSemantic:
                     "has_body": role_bodies[role_name]["has_body"]
                 }
                 
-                # Adicionar atributos se houver
                 if role_bodies[role_name]["attributes"]:
                     role_info["attributes"] = role_bodies[role_name]["attributes"]
                 
-                # Adicionar relações internas se houver
                 if role_bodies[role_name]["internal_relations"]:
                     role_info["internal_relations"] = role_bodies[role_name]["internal_relations"]
                 
@@ -867,20 +1053,28 @@ class ParserSemantic:
             }
             
             # Criar o padrão
+            parent_class_def = self.symbol_table.get_class(parent_class)
+            anchor_stereotype = parent_class_def.get('class_stereotype', 'unknown') if parent_class_def else 'unknown'
+            
             pattern = self._create_pattern(
                 pattern_type="Role_Pattern",
                 anchor_class=parent_class,
-                anchor_stereotype=self.symbol_table.get_class(parent_class).get('class_stereotype', 'unknown') if self.symbol_table.get_class(parent_class) else 'unknown',
+                anchor_stereotype=anchor_stereotype,
                 elements=elements,
                 constraints=constraints,
                 violations=violations,
                 suggestions=suggestions
             )
             
-            # Adicionar à lista apropriada
-            if violations:
+            # Adicionar à lista apropriada (apenas violations com severity="error" tornam incompleto)
+            critical_violations = [v for v in violations if v.get('severity') == 'error']
+            if critical_violations:
                 self.incomplete_patterns.append(pattern)
-                # Copiar violations para warnings de nível superior
+            else:
+                self.patterns.append(pattern)
+            
+            # Copiar violations para warnings de nível superior
+            if violations:
                 for i, violation in enumerate(violations):
                     warning = {
                         **violation,
@@ -890,9 +1084,9 @@ class ParserSemantic:
                     if i < len(suggestions):
                         warning["suggestion"] = suggestions[i]
                     self.warnings.append(warning)
-            else:
-                self.patterns.append(pattern)
 
+    #TODO verificar se o genset EXIGE o modificador disjoint
+    #TODO verificar se o genset pode ter o modificador complete opcionalmente
     #TODO verificar se o genset é aceito com duas ou mais phases
     def _detect_phase_patterns(self) -> None:
         '''
@@ -903,22 +1097,118 @@ class ParserSemantic:
         # Buscar todas as classes com estereótipo 'phase'
         all_phases = self.symbol_table.get_classes_by_stereotype('phase')
         
+        # Buscar possíveis parents válidos para phases
+        valid_parent_stereotypes = {'kind', 'subkind', 'category', 'phase'}
+        invalid_parent_stereotypes = {'role', 'mode', 'relator', 'roleMixin'}
+        
         # Agrupar phases por sua classe pai (general)
         phases_by_parent = {}
         phases_without_specialization = []
+        phase_bodies = {}  # Para armazenar informações do corpo de cada phase
         
         for phase_class in all_phases:
             phase_name = phase_class.get('class_name')
             parents = phase_class.get('specialization', {}).get('parents', [])
+            body = phase_class.get('body')
             
-            # Validação: phase sem especialização é erro crítico
+            # VALIDAÇÃO 1: Phase sem especialização → ERROR
             if not parents:
                 phases_without_specialization.append(phase_name)
                 continue
             
-            # Agrupar phases pela primeira classe pai
+            # VALIDAÇÃO 2: Verificar se parent é válido
             primary_parent = parents[0]
+            parent_class = self.symbol_table.get_class(primary_parent)
             
+            if parent_class:
+                parent_stereotype = parent_class.get('class_stereotype')
+                
+                # ERROR se parent for role, mode, relator
+                if parent_stereotype in invalid_parent_stereotypes:
+                    self.errors.append({
+                        "code": "PHASE_INVALID_PARENT",
+                        "severity": "error",
+                        "message": f"Phase '{phase_name}' cannot specialize from '{parent_stereotype}' ('{primary_parent}'). Phases must specialize from kind, subkind, category, or another phase.",
+                        "line": phase_class.get('line'),
+                        "column": phase_class.get('column'),
+                    })
+                    continue
+                
+                # WARNING se parent não for valid_parent_stereotypes
+                if parent_stereotype not in valid_parent_stereotypes:
+                    self.warnings.append({
+                        "code": "PHASE_UNUSUAL_PARENT",
+                        "severity": "warning",
+                        "message": f"Phase '{phase_name}' specializes from '{parent_stereotype}' ('{primary_parent}'). Typically phases specialize from kind, subkind, or category.",
+                        "pattern_type": "Phase_Pattern",
+                        "anchor_class": primary_parent,
+                        "line": phase_class.get('line'),
+                        "column": phase_class.get('column'),
+                    })
+            
+            # VALIDAÇÃO 3: Corpo vazio {} → WARNING
+            if body is not None and len(body) == 0:
+                self.warnings.append({
+                    "code": "PHASE_WITH_EMPTY_BRACES",
+                    "severity": "warning",
+                    "message": f"Phase '{phase_name}' has empty braces. Consider removing them or adding content",
+                    "pattern_type": "Phase_Pattern",
+                    "anchor_class": primary_parent,
+                })
+            
+            # Processar corpo da phase (se houver)
+            attributes = []
+            internal_relations = []
+            
+            if body and len(body) > 0:
+                for item in body:
+                    node_type = item.get('node_type')
+                    
+                    if node_type == 'attribute':
+                        attr_name = item.get('attribute_name')
+                        attr_type = item.get('attribute_type')
+                        
+                        # VALIDAÇÃO: Verificar se o tipo existe
+                        if attr_type and not self.symbol_table.resolve_type(attr_type):
+                            self.errors.append({
+                                "code": "PHASE_ATTRIBUTE_TYPE_NOT_FOUND",
+                                "severity": "error",
+                                "message": f"Phase '{phase_name}' attribute '{attr_name}' has undefined type '{attr_type}'"
+                            })
+                        
+                        attributes.append({
+                            "name": attr_name,
+                            "type": attr_type,
+                            "cardinality": item.get('cardinality')
+                        })
+                    
+                    elif node_type == 'internal_relation':
+                        rel_stereotype = item.get('relation_stereotype')
+                        
+                        # VALIDAÇÃO: Phases não devem ter @mediation ou @characterization
+                        if rel_stereotype in ['mediation', 'characterization', 'externalDependence']:
+                            self.warnings.append({
+                                "code": "PHASE_INVALID_RELATION_STEREOTYPE",
+                                "severity": "warning",
+                                "message": f"Phase '{phase_name}' has @{rel_stereotype} relation. This stereotype is typically used in relators/modes, not phases.",
+                                "pattern_type": "Phase_Pattern",
+                                "anchor_class": primary_parent,
+                            })
+                        
+                        internal_relations.append({
+                            "stereotype": rel_stereotype,
+                            "target": item.get('second_end'),
+                            "cardinality": item.get('second_cardinality')
+                        })
+            
+            # Armazenar informações do corpo
+            phase_bodies[phase_name] = {
+                "has_body": body is not None and len(body) > 0,
+                "attributes": attributes,
+                "internal_relations": internal_relations
+            }
+            
+            # Agrupar phases pela primeira classe pai
             if primary_parent not in phases_by_parent:
                 phases_by_parent[primary_parent] = []
             phases_by_parent[primary_parent].append(phase_name)
@@ -936,18 +1226,38 @@ class ParserSemantic:
             if len(phase_names) == 0:
                 continue
             
+            # VALIDAÇÃO: Genset com apenas 1 phase não faz sentido
+            if len(phase_names) == 1:
+                single_phase = phase_names[0]
+                gensets_for_single = self.symbol_table.get_genset_for_specific(single_phase)
+                
+                for genset in gensets_for_single:
+                    if genset.get('general') == parent_class and len(genset.get('specifics', [])) == 1:
+                        self.warnings.append({
+                            "code": "PHASE_SINGLE_IN_GENSET",
+                            "severity": "warning",
+                            "message": f"Genset '{genset.get('genset_name')}' has only one phase '{single_phase}'. Phase partitions require at least two mutually exclusive states.",
+                            "pattern_type": "Phase_Pattern",
+                            "anchor_class": parent_class,
+                            "line": genset.get('line'),
+                            "column": genset.get('column'),
+                        })
+                
+                # Não criar pattern para 1 única phase
+                continue
+            
             # Buscar genset que formalize este grupo de phases
             genset_def = self._find_matching_genset(parent_class, phase_names)
             
             violations = []
             suggestions = []
             
-            # Sugerir genset para múltiplos phases (warning, não obrigatório)
-            if len(phase_names) > 1 and genset_def is None:
+            # VALIDAÇÃO: Múltiplas phases sem genset → WARNING (altamente recomendado)
+            if genset_def is None:
                 violations.append({
                     "code": "SUGGESTED_GENSET",
                     "severity": "warning",
-                    "message": f"Multiple phases specializing '{parent_class}' should have a genset to formalize the phase partition"
+                    "message": f"Multiple phases specializing '{parent_class}' should have a genset to formalize the phase partition (mutually exclusive states)"
                 })
                 suggestions.append({
                     "type": "coercion",
@@ -956,32 +1266,13 @@ class ParserSemantic:
                     "code_suggestion": self._suggest_genset(
                         parent_class, 
                         phase_names, 
-                        disjoint=True,  # Disjoint é obrigatório quando há genset para phases
+                        disjoint=True,  # Disjoint é obrigatório para phases
                         complete=False  # Complete é opcional
                     )
                 })
-            
-            # Se genset existe, validar propriedades
-            if genset_def is not None:
+            else:
                 genset_specifics = set(genset_def.get('specifics', []))
                 detected_specifics = set(phase_names)
-                
-                # VALIDAÇÃO: Genset de phases DEVE ter disjoint
-                # Se não tiver, aplicar implicitamente com WARNING
-                if not genset_def.get('disjoint'):
-                    violations.append({
-                        "code": "MISSING_DISJOINT",
-                        "severity": "warning",
-                        "message": f"Phase_Pattern genset '{genset_def.get('genset_name')}' is missing 'disjoint' keyword (implicitly applied). Please add it explicitly.",
-                        "line": genset_def.get('line'),
-                        "column": genset_def.get('column'),
-                    })
-                    suggestions.append({
-                        "type": "coercion",
-                        "action": "add_keyword",
-                        "message": "Add 'disjoint' keyword to genset (mandatory for phases)",
-                        "code_suggestion": f"disjoint genset {genset_def.get('genset_name')} {{ ... }}"
-                    })
                 
                 # Verificar se todas as phases detectadas estão no genset
                 missing_specifics = detected_specifics - genset_specifics
@@ -1005,13 +1296,67 @@ class ParserSemantic:
                             complete=genset_def.get('complete', False)
                         )
                     })
+                
+                # VALIDAÇÃO CRÍTICA: Genset de phases DEVE ter 'disjoint' explícito
+                if not genset_def.get('disjoint'):
+                    violations.append({
+                        "code": "MISSING_DISJOINT",
+                        "severity": "error",
+                        "message": f"Phase_Pattern genset '{genset_def.get('genset_name')}' MUST have 'disjoint' keyword (phases are mutually exclusive temporal states)",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
+                    })
+                    suggestions.append({
+                        "type": "coercion",
+                        "action": "add_keyword",
+                        "message": "Add 'disjoint' keyword to genset (mandatory for phases)",
+                        "code_suggestion": f"disjoint genset {genset_def.get('genset_name')} {{ ... }}"
+                    })
+                
+                # INFO: Complete em genset de phases (semântica especial)
+                if genset_def.get('complete'):
+                    violations.append({
+                        "code": "PHASE_GENSET_COMPLETE",
+                        "severity": "info",
+                        "message": f"Genset '{genset_def.get('genset_name')}' is 'complete'. This means every '{parent_class}' instance is always in exactly one of these phases: {', '.join(phase_names)}. Ensure this covers all possible temporal states.",
+                        "line": genset_def.get('line'),
+                        "column": genset_def.get('column'),
+                    })
+            
+            # VALIDAÇÃO: Phases em múltiplos gensets → ERROR (diferente de roles)
+            for phase_name in phase_names:
+                gensets_for_phase = self.symbol_table.get_genset_for_specific(phase_name)
+                
+                if len(gensets_for_phase) > 1:
+                    genset_names = [g.get('genset_name') for g in gensets_for_phase]
+                    self.errors.append({
+                        "code": "PHASE_IN_MULTIPLE_GENSETS",
+                        "severity": "error",
+                        "message": f"Phase '{phase_name}' appears in multiple gensets: {', '.join(genset_names)}. Phases are mutually exclusive and cannot participate in multiple partitions.",
+                        "pattern_type": "Phase_Pattern",
+                        "anchor_class": parent_class,
+                    })
+            
+            # Construir informações do corpo para cada phase
+            phases_info = []
+            for phase_name in phase_names:
+                phase_info = {
+                    "name": phase_name,
+                    "has_body": phase_bodies[phase_name]["has_body"]
+                }
+                
+                if phase_bodies[phase_name]["attributes"]:
+                    phase_info["attributes"] = phase_bodies[phase_name]["attributes"]
+                
+                if phase_bodies[phase_name]["internal_relations"]:
+                    phase_info["internal_relations"] = phase_bodies[phase_name]["internal_relations"]
+                
+                phases_info.append(phase_info)
             
             # Construir constraints
-            # Disjoint is always True for phases when genset exists (implicit if not declared)
-            disjoint_explicit = genset_def.get('disjoint', False) if genset_def else False
+            # Não assumir disjoint implícito - deve ser EXPLÍCITO
             constraints = {
-                "disjoint": True if genset_def else False,
-                "disjoint_implicit": genset_def is not None and not disjoint_explicit,
+                "disjoint": genset_def.get('disjoint', False) if genset_def else False,
                 "complete": genset_def.get('complete', False) if genset_def else False,
                 "has_genset": genset_def is not None
             }
@@ -1020,24 +1365,33 @@ class ParserSemantic:
             elements = {
                 "general": parent_class,
                 "specifics": phase_names,
-                "genset": genset_def.get('genset_name') if genset_def else None
+                "genset": genset_def.get('genset_name') if genset_def else None,
+                "phases_details": phases_info
             }
             
             # Criar o padrão
+            parent_class_def = self.symbol_table.get_class(parent_class)
+            anchor_stereotype = parent_class_def.get('class_stereotype', 'unknown') if parent_class_def else 'unknown'
+            
             pattern = self._create_pattern(
                 pattern_type="Phase_Pattern",
                 anchor_class=parent_class,
-                anchor_stereotype=self.symbol_table.get_class(parent_class).get('class_stereotype', 'unknown') if self.symbol_table.get_class(parent_class) else 'unknown',
+                anchor_stereotype=anchor_stereotype,
                 elements=elements,
                 constraints=constraints,
                 violations=violations,
                 suggestions=suggestions
             )
             
-            # Adicionar à lista apropriada
-            if violations:
+            # Adicionar à lista apropriada (apenas violations com severity="error" tornam incompleto)
+            critical_violations = [v for v in violations if v.get('severity') == 'error']
+            if critical_violations:
                 self.incomplete_patterns.append(pattern)
-                # Copy violations to top-level warnings for the WarningList component
+            else:
+                self.patterns.append(pattern)
+            
+            # Copy violations to top-level warnings
+            if violations:
                 for i, violation in enumerate(violations):
                     warning = {
                         **violation,
@@ -1047,8 +1401,6 @@ class ParserSemantic:
                     if i < len(suggestions):
                         warning["suggestion"] = suggestions[i]
                     self.warnings.append(warning)
-            else:
-                self.patterns.append(pattern)
 
     def _detect_relator_patterns(self) -> None:
         '''
@@ -1240,25 +1592,23 @@ class ParserSemantic:
         
         for mode_class in all_modes:
             mode_name = mode_class.get('class_name')
-            body = mode_class.get('body') or []
+            body = mode_class.get('body')
             
             violations = []
             suggestions = []
             
-            # Buscar relações internas
-            internal_relations = [item for item in body if item.get('node_type') == 'internal_relation']
-            
-            # VALIDAÇÃO 1: Mode sem corpo → ERROR
-            if not body or len(body) == 0:
+            # VALIDAÇÃO DIFERENCIADA: Corpo vazio {} vs sem corpo
+            if body is not None and len(body) == 0:
+                # mode M {} → ERROR (corpo vazio)
                 violations.append({
-                    "code": "MODE_WITHOUT_BODY",
+                    "code": "MODE_WITH_EMPTY_BODY",
                     "severity": "error",
-                    "message": f"Mode '{mode_name}' must have a body with @characterization and @externalDependence relations"
+                    "message": f"Mode '{mode_name}' has empty braces. Remove them or add @characterization and @externalDependence relations"
                 })
                 suggestions.append({
                     "type": "coercion",
                     "action": "add_relations",
-                    "message": "Add @characterization and @externalDependence relations to the mode body",
+                    "message": "Add required relations or remove empty braces",
                     "code_suggestion": (
                         f"mode {mode_name} {{\n"
                         f"    @characterization [1..*] -- [1] TargetClass\n"
@@ -1266,13 +1616,37 @@ class ParserSemantic:
                         f"}}"
                     )
                 })
+                # Pular demais validações (corpo vazio não tem relações)
+                pattern = self._create_pattern(
+                    pattern_type="Mode_Pattern",
+                    anchor_class=mode_name,
+                    anchor_stereotype="mode",
+                    elements={"mode": mode_name, "characterizations": [], "external_dependences": []},
+                    constraints={"has_body": False, "characterization_count": 0, "external_dependence_count": 0},
+                    violations=violations,
+                    suggestions=suggestions
+                )
+                self.incomplete_patterns.append(pattern)
+                for i, violation in enumerate(violations):
+                    warning = {**violation, "pattern_type": "Mode_Pattern", "anchor_class": mode_name}
+                    if i < len(suggestions):
+                        warning["suggestion"] = suggestions[i]
+                    self.warnings.append(warning)
+                continue
+            
+            # Se body é None, é uma declaração externa válida (não precisa validar)
+            if body is None:
+                continue
+            
+            # Buscar relações internas
+            internal_relations = [item for item in body if item.get('node_type') == 'internal_relation']
             
             # Filtrar characterizations e externalDependences
             characterizations = [rel for rel in internal_relations if rel.get('relation_stereotype') == 'characterization']
             external_dependences = [rel for rel in internal_relations if rel.get('relation_stereotype') == 'externalDependence']
             
-            # VALIDAÇÃO 2: Mode sem @characterization → ERROR
-            if len(internal_relations) > 0 and len(characterizations) == 0:
+            # VALIDAÇÃO 1: Mode sem @characterization → ERROR
+            if len(characterizations) == 0:
                 violations.append({
                     "code": "MODE_WITHOUT_CHARACTERIZATION",
                     "severity": "error",
@@ -1285,8 +1659,8 @@ class ParserSemantic:
                     "code_suggestion": f"    @characterization [1..*] -- [1] TargetClass"
                 })
             
-            # VALIDAÇÃO 3: Mode sem @externalDependence → ERROR
-            if len(internal_relations) > 0 and len(external_dependences) == 0:
+            # VALIDAÇÃO 2: Mode sem @externalDependence → ERROR
+            if len(external_dependences) == 0:
                 violations.append({
                     "code": "MODE_WITHOUT_EXTERNAL_DEPENDENCE",
                     "severity": "error",
@@ -1298,6 +1672,18 @@ class ParserSemantic:
                     "message": "Add @externalDependence relation to specify external dependencies",
                     "code_suggestion": f"    @externalDependence [1..*] -- [1] DependencyClass"
                 })
+            
+            # VALIDAÇÃO 3: Verificar unicidade de characterization target
+            char_targets_set = set()
+            for char in characterizations:
+                target = char.get('second_end')
+                if target in char_targets_set:
+                    violations.append({
+                        "code": "MODE_DUPLICATE_CHARACTERIZATION",
+                        "severity": "warning",
+                        "message": f"Mode '{mode_name}' has duplicate @characterization relations to '{target}'"
+                    })
+                char_targets_set.add(target)
             
             # VALIDAÇÃO 4: Verificar se mode tem specializes (não deveria ter)
             specialization = mode_class.get('specialization')
@@ -1318,12 +1704,13 @@ class ParserSemantic:
                     "message": f"Mode '{mode_name}' should not be part of gensets: {', '.join(genset_names)}"
                 })
             
-            # VALIDAÇÃO 6: Verificar se alvos das relações existem na tabela de símbolos
+            # VALIDAÇÃO 6: Verificar se alvos das relações existem e são válidos
             characterization_targets = []
             for char in characterizations:
                 target = char.get('second_end')
                 if target:
-                    if not self.symbol_table.class_exists(target):
+                    target_class = self.symbol_table.get_class(target)
+                    if not target_class:
                         violations.append({
                             "code": "MODE_CHARACTERIZATION_TARGET_NOT_FOUND",
                             "severity": "error",
@@ -1331,6 +1718,14 @@ class ParserSemantic:
                         })
                     else:
                         characterization_targets.append(target)
+                        # Validar se target é sortal (kind, role, phase, etc.)
+                        target_stereotype = target_class.get('class_stereotype')
+                        if target_stereotype not in ['kind', 'role', 'phase', 'subkind', 'category']:
+                            violations.append({
+                                "code": "MODE_CHARACTERIZATION_INVALID_TARGET",
+                                "severity": "warning",
+                                "message": f"Mode '{mode_name}' characterization should target a sortal, but '{target}' is '{target_stereotype}'"
+                            })
             
             external_dependence_targets = []
             for ext_dep in external_dependences:
@@ -1387,20 +1782,20 @@ class ParserSemantic:
             )
             
             # Adicionar à lista apropriada
-            if violations:
+            critical_violations = [v for v in violations if v.get('severity') == 'error']
+            if critical_violations:
                 self.incomplete_patterns.append(pattern)
-                # Copiar violations para warnings de nível superior
+            else:
+                self.patterns.append(pattern)
+            
+            # Copiar violations para warnings de nível superior
+            if violations:
                 for i, violation in enumerate(violations):
-                    warning = {
-                        **violation,
-                        "pattern_type": "Mode_Pattern",
-                        "anchor_class": mode_name,
-                    }
+                    warning = {**violation, "pattern_type": "Mode_Pattern", "anchor_class": mode_name}
                     if i < len(suggestions):
                         warning["suggestion"] = suggestions[i]
                     self.warnings.append(warning)
-            else:
-                self.patterns.append(pattern)
+
 
     def _detect_rolemixin_patterns(self) -> None:
         '''
@@ -1417,14 +1812,27 @@ class ParserSemantic:
             violations = []
             suggestions = []
             
-            # VALIDAÇÃO 1: RoleMixin com specializes → WARNING (não deveria ter)
+            # VALIDAÇÃO 1: RoleMixin com specializes → WARNING (não deveria ter em geral)
             specialization = rolemixin_class.get('specialization')
             if specialization and specialization.get('parents'):
-                violations.append({
-                    "code": "ROLEMIXIN_WITH_SPECIALIZATION",
-                    "severity": "warning",
-                    "message": f"RoleMixin '{rolemixin_name}' should not have specialization"
-                })
+                parents = specialization.get('parents', [])
+                
+                # Verificar se os parents são também roleMixins (hierarquia válida)
+                invalid_parents = []
+                for parent_name in parents:
+                    parent_class = self.symbol_table.get_class(parent_name)
+                    if parent_class:
+                        parent_stereotype = parent_class.get('class_stereotype')
+                        if parent_stereotype != 'roleMixin':
+                            invalid_parents.append((parent_name, parent_stereotype))
+                
+                if invalid_parents:
+                    parent_info = ', '.join([f"'{p[0]}' ({p[1]})" for p in invalid_parents])
+                    violations.append({
+                        "code": "ROLEMIXIN_INVALID_SPECIALIZATION",
+                        "severity": "warning",
+                        "message": f"RoleMixin '{rolemixin_name}' specializes from non-RoleMixin types: {parent_info}. RoleMixins should only specialize other RoleMixins."
+                    })
             
             # VALIDAÇÃO 2: Buscar gensets onde RoleMixin é general
             gensets_as_general = self.symbol_table.get_gensets_for_general(rolemixin_name)
@@ -1439,43 +1847,54 @@ class ParserSemantic:
                 suggestions.append({
                     "type": "coercion",
                     "action": "add_genset",
-                    "message": "Add a genset with this RoleMixin as general and roles as specifics",
+                    "message": "Add a genset with this RoleMixin as general and roles as specifics (typically overlapping)",
                     "code_suggestion": self._suggest_genset(
                         rolemixin_name, 
-                        ['Role_Name1', 'Role_Name2'], 
-                        disjoint=True, 
-                        complete=True
+                        ['RoleName1', 'RoleName2'], 
+                        disjoint=False,  # Roles normalmente são overlapping
+                        complete=False   # Geralmente incomplete
                     )
                 })
             
             # VALIDAÇÃO 3: Para cada genset onde RoleMixin é general, validar propriedades
             role_specifics = []
+            role_parents_map = {}  # Mapear role -> seus parents (para detectar different kinds)
+            
             for genset_def in gensets_as_general:
                 genset_name = genset_def.get('genset_name')
                 is_disjoint = genset_def.get('disjoint', False)
                 is_complete = genset_def.get('complete', False)
                 specifics = genset_def.get('specifics', [])
                 
-                # Verificar se genset é pelo menos disjoint
-                if not is_disjoint:
+                # INFO: Se genset for disjoint (menos comum para RoleMixins)
+                if is_disjoint:
                     violations.append({
-                        "code": "ROLEMIXIN_GENSET_NOT_DISJOINT",
-                        "severity": "warning",
-                        "message": f"Genset '{genset_name}' for RoleMixin '{rolemixin_name}' should be at least disjoint"
+                        "code": "ROLEMIXIN_GENSET_IS_DISJOINT",
+                        "severity": "info",
+                        "message": f"Genset '{genset_name}' for RoleMixin '{rolemixin_name}' is disjoint (mutually exclusive roles). This is less common - verify if roles can overlap."
                     })
                 
-                # VALIDAÇÃO 4: Verificar se specifics são roles
+                # VALIDAÇÃO 4: Verificar se specifics são roles ou roleMixins
+                VALID_SPECIFIC_STEREOTYPES = {'role', 'roleMixin'}
+                
                 for specific in specifics:
                     specific_class = self.symbol_table.get_class(specific)
                     if specific_class:
                         stereotype = specific_class.get('class_stereotype')
-                        if stereotype == 'role':
-                            role_specifics.append(specific)
+                        
+                        if stereotype in VALID_SPECIFIC_STEREOTYPES:
+                            if stereotype == 'role':
+                                role_specifics.append(specific)
+                                
+                                # Capturar parents do role para análise posterior
+                                spec_parents = specific_class.get('specialization', {}).get('parents', [])
+                                if spec_parents:
+                                    role_parents_map[specific] = spec_parents
                         else:
                             violations.append({
-                                "code": "ROLEMIXIN_GENSET_NON_ROLE_SPECIFIC",
+                                "code": "ROLEMIXIN_GENSET_INVALID_SPECIFIC_STEREOTYPE",
                                 "severity": "warning",
-                                "message": f"Genset '{genset_name}' specific '{specific}' is not a role (stereotype: {stereotype})"
+                                "message": f"Genset '{genset_name}' specific '{specific}' should be 'role' or 'roleMixin' (found: '{stereotype}')"
                             })
                     else:
                         violations.append({
@@ -1484,15 +1903,62 @@ class ParserSemantic:
                             "message": f"Genset '{genset_name}' specific '{specific}' does not exist in symbol table"
                         })
             
-            # VALIDAÇÃO 5: Verificar se RoleMixin está como specific em algum genset (não esperado)
+            # VALIDAÇÃO 5: Analisar se roles vêm de diferentes kinds (informativo)
+            if len(role_parents_map) > 1:
+                all_parents = set()
+                for parents in role_parents_map.values():
+                    all_parents.update(parents)
+                
+                # Se todos os roles têm o mesmo parent, pode ser redundante com um genset normal
+                if len(all_parents) == 1:
+                    parent_name = list(all_parents)[0]
+                    violations.append({
+                        "code": "ROLEMIXIN_ROLES_FROM_SAME_KIND",
+                        "severity": "info",
+                        "message": f"RoleMixin '{rolemixin_name}' groups roles that all specialize from '{parent_name}'. Consider if a regular genset on '{parent_name}' would be more appropriate."
+                    })
+            
+            # VALIDAÇÃO 6: Verificar se RoleMixin está como specific em algum genset
             gensets_as_specific = self.symbol_table.get_genset_for_specific(rolemixin_name)
             if gensets_as_specific:
-                genset_names = [g.get('genset_name') for g in gensets_as_specific]
-                violations.append({
-                    "code": "ROLEMIXIN_AS_GENSET_SPECIFIC",
-                    "severity": "warning",
-                    "message": f"RoleMixin '{rolemixin_name}' should not be a specific in gensets: {', '.join(genset_names)}"
-                })
+                # Verificar se os generals são também roleMixins (hierarquia válida)
+                invalid_generals = []
+                
+                for genset in gensets_as_specific:
+                    general = genset.get('general')
+                    general_class = self.symbol_table.get_class(general)
+                    
+                    if general_class:
+                        general_stereotype = general_class.get('class_stereotype')
+                        
+                        if general_stereotype != 'roleMixin':
+                            invalid_generals.append((genset.get('genset_name'), general, general_stereotype))
+                
+                if invalid_generals:
+                    genset_info = ', '.join([f"'{g[0]}' (general: '{g[1]}' - {g[2]})" for g in invalid_generals])
+                    violations.append({
+                        "code": "ROLEMIXIN_AS_SPECIFIC_OF_NON_ROLEMIXIN",
+                        "severity": "warning",
+                        "message": f"RoleMixin '{rolemixin_name}' is specific in gensets with non-RoleMixin generals: {genset_info}. RoleMixins should only specialize other RoleMixins."
+                    })
+            
+            # VALIDAÇÃO 7: Analisar corpo do RoleMixin (informativo)
+            body_info = {}
+            if body and len(body) > 0:
+                attributes = [item for item in body if item.get('node_type') == 'attribute']
+                internal_relations = [item for item in body if item.get('node_type') == 'internal_relation']
+                
+                if attributes or internal_relations:
+                    body_info = {
+                        "attribute_count": len(attributes),
+                        "relation_count": len(internal_relations)
+                    }
+                    
+                    violations.append({
+                        "code": "ROLEMIXIN_WITH_BODY",
+                        "severity": "info",
+                        "message": f"RoleMixin '{rolemixin_name}' defines shared features for its roles ({len(attributes)} attributes, {len(internal_relations)} relations)"
+                    })
             
             # Construir constraints
             constraints = {
@@ -1500,7 +1966,8 @@ class ParserSemantic:
                 "has_specialization": specialization is not None and bool(specialization.get('parents')),
                 "genset_count": len(gensets_as_general),
                 "has_genset": len(gensets_as_general) > 0,
-                "role_specifics_count": len(role_specifics)
+                "role_specifics_count": len(role_specifics),
+                "is_specific_in_gensets": len(gensets_as_specific) > 0
             }
             
             # Construir elementos do padrão
@@ -1515,8 +1982,12 @@ class ParserSemantic:
                     }
                     for g in gensets_as_general
                 ],
-                "role_specifics": role_specifics
+                "role_specifics": role_specifics,
+                "role_parents": role_parents_map
             }
+            
+            if body_info:
+                elements["body_summary"] = body_info
             
             # Criar o padrão
             pattern = self._create_pattern(

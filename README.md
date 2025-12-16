@@ -320,6 +320,7 @@ complete genset Class_Role_Genset_Name {
     - O genset deve ter como atributo "general" o nome da classe referenciada nas phases;
     - O genset deve ter como atributo "specifics" as phases definidas em relação àquela classe;
     - Deve haver um mínimo de duas phases relacionadas a uma classe já definida para que o genset seja aceito.
+  - Código de exemplo:
 
 ```
 package Phase_Pattern
@@ -335,7 +336,16 @@ disjoint complete genset Class_Phase_Genset_Name {
 }
 //"disjoint" is mandatory for phases, but "complete" is optional
 ```
+
 - Relator Pattern
+  - Relations na TONTO podem ser de dois tipos: relações internas ou relações externas;
+  - Relações internas são assim caracterizadas:
+    - São identificadas pela palavra chave "relator", seguida de um IDENTIFICADOR e um corpo entre chaves;
+    - Cada "relation" dentro do corpo do "relator" deve ser encabeçada por uma "@mediation", seguido pelas cardinalidades e o nome da classe relacionada.
+  - Relações externas são assim caracterizadas:
+    - Devem ser iniciadas pelo estereótipo de relação "@material" seguido pela palavra chave "relation";
+    - 
+
 ``` 
 package Relator_Pattern
 
@@ -354,6 +364,7 @@ relator Relator_Name {
 //"relationName" can be replaced by a specific name for the relation
 ```
 - Mode Pattern
+  - Todo mode deve 
 ``` 
 package Mode_Pattern
 
