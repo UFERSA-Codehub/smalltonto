@@ -536,6 +536,8 @@ class ParserSemantic:
             f'}}'
         )
     
+    #TODO verificar se essa regra vale APENAS para kinds e subkinds
+    #TODO verificar se essa regra recebe disjoint obrigatoriamente e complete opcionalmente
     def _detect_subkind_patterns(self) -> None:
         '''
         Docstring for _detect_subkind_patterns
@@ -660,6 +662,9 @@ class ParserSemantic:
             else:
                 self.patterns.append(pattern)
 
+    #TODO verificar se o genset do roles tem mínimo de roles
+    #TODO verificar se essa regra se aplica para TODOS os estereótipos de classe 
+    #TODO verificar se essa regra recebe complete opcionalmente e rejeita disjoint
     def _detect_role_patterns(self) -> None:
         '''
         Docstring for _detect_role_patterns
@@ -888,6 +893,7 @@ class ParserSemantic:
             else:
                 self.patterns.append(pattern)
 
+    #TODO verificar se o genset é aceito com duas ou mais phases
     def _detect_phase_patterns(self) -> None:
         '''
         Docstring for _detect_phase_patterns

@@ -258,6 +258,135 @@ kind University {
 
 ---
 
+## Unidade 3: Analisador Semântico
+
+### Problema
+
+Projetar um **analisador semântico** para a linguagem TONTO para validação dos seguintes padrões de projeto de ontologias, conforme as seguintes regras definidas pelo grupo:
+
+- Subkind Pattern
+  - Todo subkind deve especializar um kind já existente;
+  - Os subkinds devem ser escritos da seguinte forma: 
+  ```subkind IDENTIFICADOR specializes IDENTIFICADOR_DO_KIND```;
+  - Ao declarar subkinds, deve-se implementar um genset para agrupá-los, que possui as seguintes características:
+    - O genset deve ter o modificador "disjoint" e pode ter o modificador "complete";
+    - O genset deve ter como atributo "general" o nome do kind referenciado nos subkinds;
+    - O genset deve ter como atributo "specifics" os subkinds definidos para aquele kind.
+  - Código de exemplo:
+
+``` 
+package Subkind_Pattern
+
+kind ClassName
+subkind SubclassName1 specializes ClassName
+subkind SubclassName2 specializes ClassName
+
+
+disjoint complete genset Kind_Subkind_Genset_Name { 
+    general ClassName
+    specifics SubclassName1, SubclassName2
+}
+// "complete" is optional, but "disjoint" applies to subkinds
+```
+
+- Role Pattern
+  - Toda role deve especializar uma classe já existente;
+  - As roles devem ser escritas da seguinte forma: ```role IDENTIFICADOR specializes IDENTIFICADOR_DA_CLASSE```;
+  - Ao declarar roles, deve-se implementar um genset para agrupá-las, que possui as seguintes características:
+    - O genset pode ter o modificador "complete", mas não deve possuir o modificador "disjoint";
+    - O genset deve ter como atributo "general" o nome da classe referenciada nas roles;
+    - O genset deve ter como atributo "specifics" as roles definidas em relação àquela classe.
+  - Código de exemplo:
+
+``` 
+package Role_Pattern
+
+kind ClassName
+role Role_Name1 specializes ClassName
+role Role_Name2 specializes ClassName
+
+complete genset Class_Role_Genset_Name { 
+    general ClassName
+    specifics Role_Name1, Role_Name2
+}
+//"complete" is optional, but "disjoint" doesnt' apply to roles
+```
+
+- Phase Pattern
+  - Toda phase deve especializar uma classe já existente;
+  - As phases devem ser escritas da seguinte forma: ```phase IDENTIFICADOR specializes IDENTIFICADOR_DA_CLASSE```;
+  - Ao declarar phases, deve-se implementar um genset para agrupá-las, que possui as seguintes características:
+    - O genset deve ter o modificador "disjoint", e pode ter o modificador "complete";
+    - O genset deve ter como atributo "general" o nome da classe referenciada nas phases;
+    - O genset deve ter como atributo "specifics" as phases definidas em relação àquela classe;
+    - Deve haver um mínimo de duas phases relacionadas a uma classe já definida para que o genset seja aceito.
+
+```
+package Phase_Pattern
+
+kind ClassName
+phase Phase_Name1 specializes ClassName
+phase Phase_Name2 specializes ClassName
+phase Phase_NameN specializes ClassName
+
+disjoint complete genset Class_Phase_Genset_Name {
+    general ClassName
+    specifics Phase_Name1, Phase_Name2, Phase_NameN
+}
+//"disjoint" is mandatory for phases, but "complete" is optional
+```
+- Relator Pattern
+``` 
+package Relator_Pattern
+
+kind ClassName1
+kind ClassName2
+
+role Role_Name1 specializes ClassName1
+role Role_Name2 specializes ClassName2
+
+relator Relator_Name {
+    @mediation [1..*] -- [1..*] Role_Name1
+    @mediation [1..*] -- [1..*] Role_Name2
+}
+
+@material relation Role_Name1 [1..*] -- relationName -- [1..*] Role_Name2 
+//"relationName" can be replaced by a specific name for the relation
+```
+- Mode Pattern
+``` 
+package Mode_Pattern
+
+kind ClassName1
+kind ClassName2
+
+mode Mode_Name1 {
+    @characterization [1..*] -- [1] ClassName1
+    @externalDependence [1..*] -- [1] ClassName2
+}
+```
+- RoleMixin Pattern
+``` 
+package RoleMixin_Pattern
+
+kind ClassName1
+kind ClassName2
+
+role Role_Name1 specializes ClassName1
+role Role_Name2 specializes ClassName2
+
+roleMixin RoleMixin_Name
+
+disjoint complete genset RoleMixin_Genset_Name {
+    general RoleMixin_Name
+    specifics Role_Name1, Role_Name2
+}
+```
+
+
+
+---
+
 ## Referências
 
 1. W3C. (2025). Resource Description Framework – Concepts and Abstract Data Model. Disponível online em: https://www.w3.org/TR/rdf12-concepts/
